@@ -1,0 +1,8 @@
+{
+  "name": "Remix: Bekansi AI Sales",
+  "description": "Enterprise AI sales assistant and CRM platform for Ethiopian furniture businesses with multi-lingual support, CRM, and active catalog.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
