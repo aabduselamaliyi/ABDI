@@ -94,6 +94,51 @@ class SalesViewModel(private val repository: SalesRepository) : ViewModel() {
     val isSyncingProducts = MutableStateFlow(false)
     val syncErrorMsg = MutableStateFlow<String?>(null)
 
+    // Session states
+    val isUserLoggedIn = MutableStateFlow(false)
+    val userEmail = MutableStateFlow("")
+    val userRole = MutableStateFlow("Sales Representative")
+
+    // Theme state
+    val isDarkMode = MutableStateFlow(false)
+
+    // Notification center state
+    val activeNotifications = MutableStateFlow<List<String>>(listOf(
+        "Welcome to Bekansi AI Secure Workspace!",
+        "Tip: Use SMM Scheduler to auto-generate seasonal posts for Ethiopian New Year.",
+        "System: 3 active hot leads are waiting for follow-up today."
+    ))
+
+    fun addNotification(message: String) {
+        val current = activeNotifications.value.toMutableList()
+        current.add(0, message)
+        activeNotifications.value = current
+    }
+
+    fun dismissNotification(index: Int) {
+        val current = activeNotifications.value.toMutableList()
+        if (index in current.indices) {
+            current.removeAt(index)
+            activeNotifications.value = current
+        }
+    }
+
+    fun loginUser(email: String, role: String) {
+        userEmail.value = email
+        userRole.value = role
+        isUserLoggedIn.value = true
+    }
+
+    fun logoutUser() {
+        isUserLoggedIn.value = false
+        userEmail.value = ""
+        userRole.value = "Sales Representative"
+    }
+
+    fun toggleDarkMode() {
+        isDarkMode.value = !isDarkMode.value
+    }
+
     init {
         viewModelScope.launch {
             // Seed database tables with fine Ethiopian hardwood products and language configs

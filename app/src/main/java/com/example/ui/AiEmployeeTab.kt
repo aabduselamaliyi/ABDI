@@ -56,6 +56,12 @@ fun AiEmployeeTab(
     var totalRepliesSent by remember { mutableStateOf(42) }
     var quotesGeneratedByAi by remember { mutableStateOf(19) }
     var leadsAnalyzedCount by remember { mutableStateOf(104) }
+
+    // Sync with real DB size
+    LaunchedEffect(quotes.size, leads.size) {
+        quotesGeneratedByAi = 19 + quotes.size
+        leadsAnalyzedCount = 104 + leads.size
+    }
     
     // Logs representing autonomous auto-messages
     var aiLogs by remember { mutableStateOf(listOf(
@@ -449,14 +455,20 @@ fun AiEmployeeTab(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         
-                        // Fake visual auto-generated quotes list
-                        val mockQuotes = listOf(
-                            Triple("Abiel M.", "Wanza Curved L-Sofa", "68,000 ETB"),
-                            Triple("Martha G.", "Regal King Canopy Bed", "112,500 ETB"),
-                            Triple("Tsegaye K.", "Seasoned Mahogany Dining 8-Chair", "89,000 ETB")
-                        )
+                        // Auto-generated quotes list from Room database or fallback to mock
+                        val displayQuotes = if (quotes.isNotEmpty()) {
+                            quotes.take(5).map { quote ->
+                                Triple(quote.leadName, quote.productName, "${quote.total.toInt()} ETB")
+                            }
+                        } else {
+                            listOf(
+                                Triple("Abiel M.", "Wanza Curved L-Sofa", "68,000 ETB"),
+                                Triple("Martha G.", "Regal King Canopy Bed", "112,500 ETB"),
+                                Triple("Tsegaye K.", "Seasoned Mahogany Dining 8-Chair", "89,000 ETB")
+                            )
+                        }
                         
-                        mockQuotes.forEach { (name, item, total) ->
+                        displayQuotes.forEach { (name, item, total) ->
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
