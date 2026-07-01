@@ -162,9 +162,9 @@ const INITIAL_LEADS = [
   },
   {
     id: "lead-01f2-9ccd",
-    fullName: "Tewodros Alene",
-    phoneNumber: "+251 98 882 8861",
-    location: "Addis Ababa (Megenagna)",
+    fullName: "Abdi Biya",
+    phoneNumber: "0988828861",
+    location: "Bishoftu City, Dukem Subcity",
     productInterest: "Custom Mahogany Lounge Seating Set",
     productCategory: "Living Room",
     budgetRange: 340000,
@@ -194,7 +194,7 @@ const INITIAL_LEADS = [
     id: "lead-50ac-bcde",
     fullName: "Almaz Kebede",
     phoneNumber: "+251 91 002 9911",
-    location: "Addis Ababa (Bole Medhanialem)",
+    location: "Bishoftu City, Dukem Subcity",
     productInterest: "L-Shape Cozy Sofa (Misty Spruce)",
     productCategory: "Living Room",
     budgetRange: 160000,
@@ -202,7 +202,7 @@ const INITIAL_LEADS = [
     leadStatus: "Cold",
     preferredLanguage: "am", // Amharic
     sourceChannel: "WhatsApp",
-    notes: "Just comparing options. Visited Bole showroom, noted layout size adjustments option.",
+    notes: "Just comparing options. Visited Bishoftu showroom, noted layout size adjustments option.",
     dateCreated: "2026-06-01"
   },
   {
@@ -235,7 +235,7 @@ export default function LeadStatusPipelineChart() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [newLeadName, setNewLeadName] = useState('');
   const [newLeadPhone, setNewLeadPhone] = useState('');
-  const [newLeadLocation, setNewLeadLocation] = useState('Addis Ababa (Bole)');
+  const [newLeadLocation, setNewLeadLocation] = useState('Bishoftu City, Dukem Subcity');
   const [newLeadInterest, setNewLeadInterest] = useState('');
   const [newLeadCategory, setNewLeadCategory] = useState('Living Room');
   const [newLeadBudget, setNewLeadBudget] = useState('180000');
@@ -1130,7 +1130,7 @@ export default function LeadStatusPipelineChart() {
                   rows="3"
                   value={newLeadNotes}
                   onChange={(e) => setNewLeadNotes(e.target.value)}
-                  placeholder="Insert any detailed notes from dialog conversation. E.g. likes natural wood finishing styles, requests 15% discount for Bole Kazanchis region..."
+                  placeholder="Insert any detailed notes from dialog conversation. E.g. likes natural wood finishing styles, requests 15% discount for Dukem region..."
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500"
                 />
               </div>

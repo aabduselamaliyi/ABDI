@@ -434,17 +434,40 @@ CREATE POLICY tenant_isolation_design_selections ON design_selections
     USING (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::UUID);
 
 -- ============================================================================
+-- SOCIAL MEDIA MARKETING & AUTOMATION QUEUES
+-- ============================================================================
+
+CREATE TABLE smm_posts (
+    id SERIAL PRIMARY KEY,
+    organization_id UUID DEFAULT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    image_url TEXT,
+    platform VARCHAR(50) NOT NULL, 
+    status VARCHAR(50) DEFAULT 'pending', 
+    scheduled_time TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+-- Enable RLS and isolate smm_posts
+ALTER TABLE smm_posts ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY tenant_isolation_smm_posts ON smm_posts
+    FOR ALL
+    USING (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::UUID);
+
+-- ============================================================================
 -- AUDIT AND TEMPORAL TRIGGERS
 -- ============================================================================
 
 -- Automated trigger function to update the 'updated_at' columns on row change
 CREATE OR REPLACE FUNCTION update_modified_column()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER AS $
 BEGIN
     NEW.updated_at = now();
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$ LANGUAGE plpgsql;
 
 CREATE TRIGGER update_organizations_modtime BEFORE UPDATE ON organizations FOR EACH ROW EXECUTE FUNCTION update_modified_column();
 CREATE TRIGGER update_users_modtime BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_modified_column();
@@ -455,3 +478,4 @@ CREATE TRIGGER update_quotations_modtime BEFORE UPDATE ON quotations FOR EACH RO
 CREATE TRIGGER update_categories_modtime BEFORE UPDATE ON categories FOR EACH ROW EXECUTE FUNCTION update_modified_column();
 CREATE TRIGGER update_design_albums_modtime BEFORE UPDATE ON design_albums FOR EACH ROW EXECUTE FUNCTION update_modified_column();
 CREATE TRIGGER update_design_selections_modtime BEFORE UPDATE ON design_selections FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+CREATE TRIGGER update_smm_posts_modtime BEFORE UPDATE ON smm_posts FOR EACH ROW EXECUTE FUNCTION update_modified_column();

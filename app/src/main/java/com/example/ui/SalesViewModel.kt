@@ -91,6 +91,8 @@ class SalesViewModel(private val repository: SalesRepository) : ViewModel() {
 
     // UI state indicators
     val isAIThinking = MutableStateFlow(false)
+    val isSyncingProducts = MutableStateFlow(false)
+    val syncErrorMsg = MutableStateFlow<String?>(null)
 
     init {
         viewModelScope.launch {
@@ -298,6 +300,20 @@ class SalesViewModel(private val repository: SalesRepository) : ViewModel() {
     fun deleteProduct(id: Int) {
         viewModelScope.launch {
             repository.deleteProduct(id)
+        }
+    }
+
+    fun syncProducts() {
+        viewModelScope.launch {
+            isSyncingProducts.value = true
+            syncErrorMsg.value = null
+            val result = repository.syncProductsFromPostgres(selectedLanguage.value)
+            result.onSuccess {
+                syncErrorMsg.value = null
+            }.onFailure { err ->
+                syncErrorMsg.value = err.message ?: "Failed link to external PostgreSQL"
+            }
+            isSyncingProducts.value = false
         }
     }
 

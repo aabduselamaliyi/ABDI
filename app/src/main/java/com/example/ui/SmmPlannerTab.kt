@@ -48,7 +48,10 @@ data class DayContent(
     val facebookDraft: String,
     val instagramDraft: String,
     val telegramDraft: String,
-    val visualPrompt: String
+    val visualPrompt: String,
+    val tiktokDraft: String = "",
+    val linkedinDraft: String = "",
+    val whatsappDraft: String = ""
 )
 
 @OptIn(ExperimentalAnimationApi::class)
@@ -64,6 +67,26 @@ fun SmmPlannerTab(viewModel: SalesViewModel) {
     var selectedPlatform by remember { mutableStateOf("Facebook") } // Facebook, Instagram, Telegram
     var isGeneratingState by remember { mutableStateOf(false) }
     val activeLanguage by viewModel.selectedLanguage.collectAsState()
+
+    // Viral Timing Scheduler & Automation State Maps (Day Number -> Configuration)
+    var scheduledTimesMap by remember { mutableStateOf(mapOf<Int, Set<String>>(
+        1 to setOf("Evening (19:00 - 22:00)"),
+        2 to setOf("Lunch (12:00 - 14:00)"),
+        3 to setOf("Morning (08:00 - 10:00)"),
+        4 to setOf("Evening (19:00 - 22:00)"),
+        5 to setOf("Weekend Peak (Fri-Sun 20:00)"),
+        6 to setOf("Morning (08:00 - 10:00)"),
+        7 to setOf("Weekend Peak (Fri-Sun 20:00)")
+    )) }
+    var publishingStatusMap by remember { mutableStateOf(mapOf<Int, String>(
+        1 to "Posted successfully ✅",
+        2 to "Scheduled 🟢",
+        3 to "Queued ⏰",
+        4 to "Scheduled 🟢",
+        5 to "Scheduled 🟢",
+        6 to "Drafted ⚙️",
+        7 to "Drafted ⚙️"
+    )) }
 
     // Pre-Baked high-fidelity content calendar templates (fallback & instant access)
     val elegantWoodCalendar = remember {
@@ -1120,18 +1143,21 @@ Create lasting family traditions.
                 } else {
                     // Call Gemini API with precise instruction to construct our custom calendar
                     val prompt = """
-                        Generate a professional 7-Day Social Media Content Calendar for Bekansi Furniture & Interior Design, Addis Ababa, Ethiopia.
+                        Generate a professional 7-Day Social Media Content Calendar for Bekansi Furniture & Interior Design showroom and workshop located in Bishoftu City, Dukem Subcity.
                         Language required for outputs: $activeLanguage.
                         Campaign Specific Theme/Focus requested: $campaignTag.
                         Custom Instruction Addendum from Marketing Manager: $customInstruction
                         
                         You MUST return exactly 7 days. For EACH day, generate:
-                        1. One post optimized for FACEBOOK desktop feed (rich, engaging, call to action with Bole Showroom, phone: +251 911 000 000, and our official page link: https://www.facebook.com/bekansifurniture).
-                        2. One post optimized for INSTAGRAM captions (emoji-rich, visual keywords, hashtags, and a prompt to follow our TikTok: https://www.tiktok.com/@bekansi.furniture).
-                        3. One post optimized for TELEGRAM channel draft (structured with emojis, bullet points, and calls to action linking to our official Telegram channel: https://t.me/Bekansiinfo / user handle @Bekansiinfo and WhatsApp click-to-chat link: https://wa.me/message/NVKWSHDCKFDXN1).
-                        4. A creative VISUAL PROMPT describing what image to generate for this day (e.g., modern bedroom, glowing bed, carpenters chisel).
-                        5. A matching marketing category (e.g., Product Showcase, Customer Testimonial, Behind-the-scenes, Interior Design Tips, promotions, Educational Content, Seasonal Campaigns).
-                        6. Day Number (1-7), Day Name (Monday - Sunday), and focus topic.
+                        1. One post optimized for FACEBOOK desktop feed (conversational + emotional, rich, engaging, call to action with our Bishoftu City, Dukem Subcity Showroom, our official business phone numbers: 0988828861/0910824534, our key design advisors Abdi Biya and Bekansi, and our official page link: https://www.facebook.com/bekansifurniture).
+                        2. One post optimized for INSTAGRAM captions (visual + short captions, emoji-rich, visual keywords, hashtags, and a prompt to follow our TikTok: https://www.tiktok.com/@bekansi.furniture).
+                        3. One post optimized for TELEGRAM channel draft (structured broadcast format with emojis, bullet points, and calls to action linking to our official Telegram channel: https://t.me/Bekansiinfo / user handle @Bekansiinfo / WhatsApp contact numbers: 0988828861/0910824534, and WhatsApp click-to-chat link: https://wa.me/message/NVKWSHDCKFDXN1).
+                        4. One post optimized for TIKTOK scripts (hook-driven, active script format, strong viral hook in first 1–2 lines, visual scene cues [in brackets], sound effects [SFX], and oral cues).
+                        5. One post optimized for LINKEDIN posts (professional tone, business insights, developer perspective, partnership opportunities, luxury housing project case studies).
+                        6. One post optimized for WHATSAPP broadcast messages (highly scannable bullet points, quick emotional hooks, call to action links, and contact channels).
+                        7. A creative VISUAL PROMPT describing what image to generate for this day (e.g., modern bedroom, glowing bed, carpenters chisel).
+                        8. A matching marketing category (e.g., Product Showcase, Customer Testimonial, Behind-the-scenes, Interior Design Tips, promotions, Educational Content, Seasonal Campaigns).
+                        9. Day Number (1-7), Day Name (Monday - Sunday), and focus topic.
                         
                         Please format each day inside clear XML-like tags so we can parse them perfectly in Kotlin. Like this:
                         <day1>
@@ -1140,6 +1166,9 @@ Create lasting family traditions.
                         <facebook>[facebookDraft]</facebook>
                         <instagram>[instagramDraft]</instagram>
                         <telegram>[telegramDraft]</telegram>
+                        <tiktok>[tiktokDraft]</tiktok>
+                        <linkedin>[linkedinDraft]</linkedin>
+                        <whatsapp>[whatsappDraft]</whatsapp>
                         <visual>[visualPrompt]</visual>
                         </day1>
                         ...
@@ -1182,6 +1211,9 @@ Create lasting family traditions.
                             val fb = extractTag("facebook").takeIf { it.isNotBlank() } ?: "Enjoy premium Wanza & Mahogany setups from Bekansi!"
                             val insta = extractTag("instagram").takeIf { it.isNotBlank() } ?: "Regal woodcraft. Link in bio!"
                             val tele = extractTag("telegram").takeIf { it.isNotBlank() } ?: "<b>Premier wood options</b> @Bekansiinfo"
+                            val tiktok = extractTag("tiktok").takeIf { it.isNotBlank() } ?: "[Scene: Upbeat modern music, beautiful panning over curved mahogany parlor set]\nStop buying cheap furniture that warps!"
+                            val linkedin = extractTag("linkedin").takeIf { it.isNotBlank() } ?: "Transforming commercial office setups in Ethiopia with dry-season seasoned timber engineering."
+                            val whatsapp = extractTag("whatsapp").takeIf { it.isNotBlank() } ?: "*Exclusive Bekansi Deal* 🌟\nGet free delivery inside Dukem!"
                             val vis = extractTag("visual").takeIf { it.isNotBlank() } ?: "Shot of beautiful solid wood grain."
 
                             parsedDays.add(
@@ -1193,6 +1225,9 @@ Create lasting family traditions.
                                     facebookDraft = fb,
                                     instagramDraft = insta,
                                     telegramDraft = tele,
+                                    tiktokDraft = tiktok,
+                                    linkedinDraft = linkedin,
+                                    whatsappDraft = whatsapp,
                                     visualPrompt = vis
                                 )
                             )
@@ -1367,7 +1402,7 @@ Create lasting family traditions.
                     OutlinedTextField(
                         value = customInstruction,
                         onValueChange = { customInstruction = it },
-                        placeholder = { Text("e.g. Include 10% holiday deal, mention delivery is free inside Bole zone...", fontSize = 10.sp, color = TextMuted) },
+                        placeholder = { Text("e.g. Include 10% holiday deal, mention delivery is free inside Dukem zone...", fontSize = 10.sp, color = TextMuted) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("smm_brief_input"),
@@ -1548,18 +1583,22 @@ Create lasting family traditions.
                     Divider(color = Color.White.copy(alpha = 0.05f))
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // Platform selector tab inside day workspace
+                    // Platform selector tab inside day workspace (Scrollable for multiple platforms support)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
-                            .padding(3.dp),
+                            .horizontalScroll(rememberScrollState())
+                            .padding(4.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         listOf(
                             Triple("Facebook", "FB Feed", Color(0xFF1877F2)),
-                            Triple("Instagram", "Insta", Color(0xFFE1306C)),
-                            Triple("Telegram", "Telegram", Color(0xFF0088CC))
+                            Triple("Instagram", "Instagram", Color(0xFFE1306C)),
+                            Triple("TikTok", "TikTok", Color(0xFFFE2C55)),
+                            Triple("Telegram", "Telegram", Color(0xFF0088CC)),
+                            Triple("WhatsApp", "WhatsApp", Color(0xFF25D366)),
+                            Triple("LinkedIn", "LinkedIn", Color(0xFF0A66C2))
                         ).forEach { (platform, label, color) ->
                             val isSelected = selectedPlatform == platform
                             Button(
@@ -1570,8 +1609,9 @@ Create lasting family traditions.
                                 ),
                                 shape = RoundedCornerShape(6.dp),
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .height(34.dp),
+                                    .width(105.dp)
+                                    .height(34.dp)
+                                    .testTag("smm_platform_btn_$platform"),
                                 contentPadding = PaddingValues(0.dp)
                             ) {
                                 Row(
@@ -1579,9 +1619,17 @@ Create lasting family traditions.
                                     horizontalArrangement = Arrangement.Center
                                 ) {
                                     Icon(
-                                        imageVector = if (platform == "Facebook") Icons.Default.Person else if (platform == "Instagram") Icons.Default.Home else Icons.Default.Share,
+                                        imageVector = when (platform) {
+                                            "Facebook" -> Icons.Default.Person
+                                            "Instagram" -> Icons.Default.Home
+                                            "TikTok" -> Icons.Default.PlayArrow
+                                            "Telegram" -> Icons.Default.Share
+                                            "WhatsApp" -> Icons.Default.Call
+                                            else -> Icons.Default.Build
+                                        },
                                         contentDescription = "",
-                                        modifier = Modifier.size(11.dp)
+                                        modifier = Modifier.size(11.dp),
+                                        tint = if (isSelected) Color.White else TextMuted
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(label, fontSize = 9.sp, fontWeight = FontWeight.Bold)
@@ -1594,9 +1642,55 @@ Create lasting family traditions.
 
                     // Platform Specific Interactive Feed Mock
                     val currentDraftText = when (selectedPlatform) {
-                        "Facebook" -> activeDayContent.facebookDraft
-                        "Instagram" -> activeDayContent.instagramDraft
-                        else -> activeDayContent.telegramDraft
+                        "Facebook" -> preprocessDraft(activeDayContent.facebookDraft)
+                        "Instagram" -> preprocessDraft(activeDayContent.instagramDraft)
+                        "Telegram" -> preprocessDraft(activeDayContent.telegramDraft)
+                        "TikTok" -> {
+                            val raw = activeDayContent.tiktokDraft
+                            if (raw.isNotBlank()) preprocessDraft(raw) else preprocessDraft("""
+                                🎬 [SCENE: Master artisan routing solid mahogany wood frame in Bishoftu showroom]
+                                🎙️ VOICE OVER (Energetic): "Stop buying cheap flat-pack furniture that warps in Addis Ababa weather!"
+                                
+                                💡 [SCENE: Transition to glowing LED underbed on 'Sheger' King bed]
+                                "Here is why wood mastering is worth it. At Bekansi, we dry Grar and Mahogany to exactly 8% so it stays raw, solid, and flat forever."
+                                
+                                👉 COMMENT 'PRICE' now to receive custom sizing price-lists sent direct to your inbox!
+                                
+                                #Bekansi #FurnitureEthiopia #TikTokAddis #WoodMastery #DecorHacks #ModernSofa
+                            """.trimIndent())
+                        }
+                        "LinkedIn" -> {
+                            val raw = activeDayContent.linkedinDraft
+                            if (raw.isNotBlank()) preprocessDraft(raw) else preprocessDraft("""
+                                💼 MODERN COMMERCIAL REAL ESTATE INSIGHT: ELEVATING PROPERTY VALUATIONS
+                                
+                                In the contemporary Addis Ababa residential developer index, standardized furniture builds often fall victim to poor seasoning, causing warping and cracking within 6 to 12 months.
+                                
+                                At Bekansi PLC, we treat real estate furnishing with industrial wood-kiln drying, stabilizing humidity extraction to 8%. Result: wardrobes, kitchen dividers, and boardroom tables that maintain structural integrity across decades.
+                                
+                                🏛️ Accelerate your next project SLA. Connect with our contract architects to schedule a showroom walkthrough at our Bishoftu facility: +251911000000.
+                                
+                                #RealEstateEthiopia #CommercialDesign #AddisConstruction #BekansiPLC #OfficeFurniture #CorporateInteriors
+                            """.trimIndent())
+                        }
+                        "WhatsApp" -> {
+                            val raw = activeDayContent.whatsappDraft
+                            if (raw.isNotBlank()) preprocessDraft(raw) else preprocessDraft("""
+                                🌟 *BEKANSI EXCLUSIVE WEEKLY BROADCAST DEAL* 🌟
+                                
+                                Remodeling your salón or hotel suite? Get premium solid *Wanza Curved L-Sofas* customized to your precise floor layout directly from our workshop!
+                                
+                                🛡️ *Why Bekansi:*
+                                • 100% Seasoned Wanza timber
+                                • High-density Cloud plush seat cushions
+                                • 5-Year Full Structural Warranty
+                                • FREE transport & installation inside Bishoftu zone!
+                                
+                                📲 *Check pictures & order:* https://wa.me/message/NVKWSHDCKFDXN1
+                                📞 Or chat with us direct on: 0988828861 / 0910824534
+                            """.trimIndent())
+                        }
+                        else -> preprocessDraft(activeDayContent.telegramDraft)
                     }
 
                     MockSocialFeedPreview(
@@ -1605,6 +1699,177 @@ Create lasting family traditions.
                         visualPrompt = activeDayContent.visualPrompt,
                         onCopyClicked = { copyContent -> copyToClipboard(copyContent, selectedPlatform) }
                     )
+
+                    // --- VIRAL TIMING SCHEDULER ENGINE SECTION (Step 4 & 5) ---
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Text(
+                        "Viral SMM Timing Engine Scheduler",
+                        color = GoldAccent,
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    val activeDayNum = activeDayContent.dayNumber
+                    val activeTimes = scheduledTimesMap[activeDayNum] ?: emptySet()
+                    val activeStatus = publishingStatusMap[activeDayNum] ?: "Drafted ⚙️"
+                    
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.35f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(8.dp))
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = "",
+                                        tint = if (activeStatus.contains("Posted")) AccentSuccess else GoldAccent,
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(5.dp))
+                                    Text("Status: ", fontSize = 10.5.sp, color = TextMuted)
+                                    Text(
+                                        activeStatus, 
+                                        fontSize = 10.5.sp, 
+                                        color = if (activeStatus.contains("Posted")) AccentSuccess else if (activeStatus.contains("Scheduled")) Color(0xFF818CF8) else TextLight,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                
+                                Button(
+                                    onClick = {
+                                        publishingStatusMap = publishingStatusMap + (activeDayNum to "Scheduled 🟢")
+                                        Toast.makeText(context, "SMM Automation Armed: Multi-platform posting armed on schedules!", Toast.LENGTH_SHORT).show()
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = WarmMahogany),
+                                    shape = RoundedCornerShape(6.dp),
+                                    modifier = Modifier.height(26.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                                ) {
+                                    Text("Arm Auto-Post ⚡", fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = TextLight)
+                                }
+                            }
+                            
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text("Recommended Active Peak Windows (Toggle to Select):", fontSize = 9.sp, color = TextMuted)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            
+                            val timingOptions = listOf(
+                                "Morning (08:00 - 10:00)",
+                                "Lunch (12:00 - 14:00)",
+                                "Evening (19:00 - 22:00)",
+                                "Weekend Peak (Fri-Sun 20:00)"
+                            )
+                            
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                timingOptions.forEach { slot ->
+                                    val isSelected = activeTimes.contains(slot)
+                                    val chipColor = if (isSelected) GoldAccent else Color.Black.copy(alpha = 0.5f)
+                                    val chipTextColor = if (isSelected) Color.Black else TextMuted
+                                    
+                                    Box(
+                                        modifier = Modifier
+                                            .border(1.dp, if (isSelected) GoldAccent else Color.Gray.copy(alpha = 0.15f), RoundedCornerShape(6.dp))
+                                            .background(if (isSelected) GoldAccent else Color.Transparent, RoundedCornerShape(6.dp))
+                                            .clickable {
+                                                val entry = scheduledTimesMap[activeDayNum] ?: emptySet()
+                                                val updated = if (entry.contains(slot)) entry - slot else entry + slot
+                                                scheduledTimesMap = scheduledTimesMap + (activeDayNum to updated)
+                                                
+                                                if (updated.isNotEmpty() && activeStatus == "Drafted ⚙️") {
+                                                    publishingStatusMap = publishingStatusMap + (activeDayNum to "Scheduled 🟢")
+                                                }
+                                            }
+                                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                                    ) {
+                                        Text(slot, fontSize = 8.5.sp, color = chipTextColor, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // --- VIRAL SCORE & QUALITY COMPLIANCE AUDIT AUDITOR ---
+                    Spacer(modifier = Modifier.height(14.dp))
+                    val metrics = checkViralFormula(currentDraftText)
+                    val score = metrics.count { it.second }
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "Viral Formula Quality Audit",
+                            color = GoldAccent,
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Viral Rating: ", fontSize = 10.sp, color = TextMuted)
+                            repeat(5) { idx ->
+                                Icon(
+                                    imageVector = Icons.Default.Star,
+                                    contentDescription = "",
+                                    tint = if (idx < score) GoldAccent else Color.Gray.copy(alpha = 0.3f),
+                                    modifier = Modifier.size(11.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("$score/5", fontSize = 10.5.sp, color = GoldAccent, fontWeight = FontWeight.Black)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.35f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(8.dp))
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            metrics.forEach { (name, met, tip) ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 3.dp),
+                                    verticalAlignment = Alignment.Top
+                                ) {
+                                    Text(
+                                        text = if (met) "🟢" else "🔴",
+                                        fontSize = 10.sp,
+                                        modifier = Modifier.padding(end = 6.dp)
+                                    )
+                                    Column {
+                                        Text(
+                                            text = name,
+                                            fontSize = 9.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (met) TextLight else Color(0xFFF87171)
+                                        )
+                                        Text(
+                                            text = tip,
+                                            fontSize = 8.sp,
+                                            color = TextMuted,
+                                            lineHeight = 11.sp
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -1701,7 +1966,7 @@ fun MockSocialFeedPreview(
                         )
                     }
                     Text(
-                        "Sponsored • Addis Ababa, Bole Showroom",
+                        "Sponsored • Bishoftu City, Dukem Subcity Showroom",
                         color = TextMuted,
                         fontSize = 9.sp
                     )
@@ -1790,4 +2055,87 @@ fun MockSocialFeedPreview(
             }
         }
     }
+}
+
+private fun preprocessDraft(text: String): String {
+    return text
+        .replace("+251 911 000 000", "0988828861/0910824534")
+        .replace("+251911000000", "0988828861/0910824534")
+        .replace("Addis Ababa Showroom today near Bole", "Bishoftu City, Dukem Subcity showroom")
+        .replace("Addis Ababa Showroom near Bole", "Bishoftu City, Dukem Subcity showroom")
+        .replace("Addis Ababa, Bole", "Bishoftu City, Dukem Subcity")
+        .replace("Bole, Addis Ababa, Ethiopia", "Bishoftu City, Dukem Subcity, Ethiopia")
+        .replace("Bole, Addis Ababa", "Bishoftu City, Dukem Subcity")
+        .replace("Bole Showroom, Addis Ababa", "Bishoftu City, Dukem Subcity Showroom")
+        .replace("Showroom: Bole, Addis Ababa, Ethiopia", "Showroom: Bishoftu City, Dukem Subcity, Ethiopia")
+        .replace("Showroom Bole, Addis Ababa", "Showroom: Bishoftu City, Dukem Subcity")
+        .replace("showroom in Bole, Addis Ababa", "showroom in Bishoftu City, Dukem Subcity")
+        .replace("showroom in Bole", "showroom in Bishoftu City, Dukem Subcity")
+        .replace("corporate design suite in Bole", "corporate design suite in Bishoftu City, Dukem Subcity")
+        .replace("Bole subcity", "Bishoftu City, Dukem Subcity")
+        .replace("Bole zone", "Bishoftu City, Dukem Subcity zone")
+        .replace("Bole apartment", "Bishoftu City, Dukem Subcity apartment")
+        .replace("Bole Showroom", "Bishoftu City, Dukem Subcity Showroom")
+        .replace("Bole", "Bishoftu City, Dukem Subcity")
+        .replace("Addis Ababa", "Bishoftu City, Dukem Subcity")
+        .replace("Tewodros Alene", "Abdi Biya")
+        .replace("Chala Kebede", "Bekansi")
+}
+
+fun checkViralFormula(text: String): List<Triple<String, Boolean, String>> {
+    val results = mutableListOf<Triple<String, Boolean, String>>()
+    val lowercaseText = text.lowercase()
+    
+    // 1. Hook Check
+    val firstTwoLines = text.trim().lines().take(2).joinToString(" ")
+    val hasHook = firstTwoLines.contains("?") || 
+                  firstTwoLines.contains("🔥") || 
+                  firstTwoLines.contains("🔔") || 
+                  firstTwoLines.contains("⭐") || 
+                  firstTwoLines.contains("✨") || 
+                  firstTwoLines.contains("!") || 
+                  firstTwoLines.any { it.isUpperCase() } || 
+                  firstTwoLines.contains("stop") ||
+                  firstTwoLines.contains("why") ||
+                  firstTwoLines.contains("how")
+    results.add(Triple("Strong Hook (1-2 lines) 🪝", hasHook, "First 2 lines should use curiosity, caps, or high-impact emojis (🔥, 🔔)."))
+    
+    // 2. Emotional Trigger Check
+    val emotionalKeywords = listOf(
+        "never", "cheap", "royal", "majestic", "broken", "stop", "secrets", "why", "shocking", 
+        "luxury", "regal", "invest", "dream", "forever", "perfect", "comfort", "broke", "quality",
+        "elegance", "warmth", "traditional", "love", "family", "guarantee", "pinnacle"
+    )
+    val hasEmotional = emotionalKeywords.any { lowercaseText.contains(it) }
+    results.add(Triple("Emotional Trigger / Curiosity 🎭", hasEmotional, "Use terms like 'cheap', 'luxury', 'split', 'warp', 'lifetime' to instigate desire."))
+    
+    // 3. Clear Value or Offer Check
+    val valueKeywords = listOf(
+        "solid", "wanza", "mahogany", "warranty", "custom", "free", "price", "discount", "off", 
+        "deal", "promo", "cabinet", "wood", "hardwood", "kiln", "craft", "etb", "birr"
+    )
+    val hasValue = valueKeywords.any { lowercaseText.contains(it) }
+    results.add(Triple("Clear Value & Core Offer 💰", hasValue, "Indicate premium material (Wanza, Mahogany), pricing, warranty, or custom specs."))
+    
+    // 4. CTA Check
+    val hasCta = text.contains("0988828861") || 
+                 text.contains("0910824534") || 
+                 text.contains("https://") || 
+                 text.contains("t.me") ||
+                 lowercaseText.contains("call") || 
+                 text.contains("@") || 
+                 lowercaseText.contains("contact") || 
+                 lowercaseText.contains("showroom") ||
+                 lowercaseText.contains("visit")
+    results.add(Triple("Call to Action (CTA) 📣", hasCta, "Reference business phone (0988828861), telegram links, or showroom location directions."))
+    
+    // 5. Engagement Trigger Check
+    val engagementKeywords = listOf(
+        "comment", "message", "reply", "dm", "follow", "share", "ask", "opinion", "what do you", 
+        "which", "tag", "price", "write", "send", "chat", "inbox"
+    )
+    val hasEngagement = engagementKeywords.any { lowercaseText.contains(it) }
+    results.add(Triple("Engagement & Comment Bait 💬", hasEngagement, "Ask questions, trigger a direct message, or ask to comment 'PRICE' to boost algorithm reach."))
+    
+    return results
 }

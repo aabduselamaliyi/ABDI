@@ -28,6 +28,7 @@ import {
   Sliders,
   DollarSign
 } from 'lucide-react';
+import ShareButton from './ShareButton';
 
 /**
  * BEKANSI AI SALES ASSISTANT PLATFORM
@@ -213,22 +214,33 @@ export default function FurnitureCatalog() {
       
       {/* Top Professional Header Navigation */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between border-b border-slate-900 pb-6 mb-6 gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="bg-amber-500/10 text-amber-500 text-[10px] uppercase font-bold tracking-widest px-2.5 py-1 rounded-md border border-amber-500/15">
-              Multi-Tenant Catalog Module
-            </span>
-            <span className="flex items-center gap-1.5 text-[11px] text-slate-500">
-              <Compass className="w-3.5 h-3.5 text-slate-500" />
-              Tenant ID Isolation: RLS Restricted
-            </span>
+        <div className="flex flex-col md:flex-row md:items-center gap-4">
+          {/* Company Logo */}
+          <div className="flex-shrink-0 flex items-center justify-start md:justify-center">
+            <img 
+              src="https://chatgpt.com/s/m_6a347ae4ef54819197e20f8e18418993" 
+              alt="Bekansi Logo" 
+              className="h-10 w-auto object-contain"
+              style={{ height: '40px' }}
+            />
           </div>
-          <h1 className="text-2xl md:text-3xl font-black text-slate-50 tracking-tight">
-            Furniture Design Albums
-          </h1>
-          <p className="text-slate-400 text-sm mt-1">
-            Browse and coordinate 52 premium handcrafted assets with localized multilingual configurations (አማርኛ / Afaan Oromo).
-          </p>
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="bg-amber-500/10 text-amber-500 text-[10px] uppercase font-bold tracking-widest px-2.5 py-1 rounded-md border border-amber-500/15">
+                Multi-Tenant Catalog Module
+              </span>
+              <span className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                <Compass className="w-3.5 h-3.5 text-slate-500" />
+                Tenant ID Isolation: RLS Restricted
+              </span>
+            </div>
+            <h1 className="text-2xl md:text-3xl font-black text-slate-50 tracking-tight">
+              Furniture Design Albums
+            </h1>
+            <p className="text-slate-400 text-sm mt-1">
+              Browse and coordinate 52 premium handcrafted assets with localized multilingual configurations (አማርኛ / Afaan Oromo).
+            </p>
+          </div>
         </div>
 
         {/* Localized Language Switcher & Workspace Actions */}
@@ -865,10 +877,16 @@ export default function FurnitureCatalog() {
                 </button>
                 <button 
                   onClick={() => alert(`Direct tenant webhook link: https://t.me/BekansiSalesBot?start=quote_${focusedAlbum.album_code}`)}
-                  className="bg-slate-950 border border-slate-800 hover:bg-slate-850 p-2.5 rounded-xl transition-all text-slate-300"
+                  className="bg-slate-950 border border-slate-800 hover:bg-slate-850 p-2.5 rounded-xl transition-all text-slate-300 mr-1"
+                  title="Copy Direct Telegram Webhook Link"
                 >
                   <Share2 className="w-4 h-4" />
                 </button>
+                <ShareButton 
+                  title={focusedAlbum.item_name || 'Bespoke Furniture Design'}
+                  text={`Check out this amazing model: ${focusedAlbum.item_name || 'Design Accent'} handcrafted of premium ${focusedAlbum.material || 'local timber'}. Style: ${focusedAlbum.style || 'Signature'}. price: ${focusedAlbum.price?.toLocaleString('en-US') || 'Custom'} ETB.`}
+                  url={window.location.href}
+                />
               </div>
 
               {/* Toast response trigger */}

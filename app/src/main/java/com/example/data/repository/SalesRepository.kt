@@ -22,6 +22,7 @@ import com.example.data.model.CustomerFavorite
 import com.example.data.model.CustomerSelection
 import com.example.data.model.DesignComparison
 import com.example.data.model.AlbumAnalytics
+import com.example.data.api.RetrofitClient
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.Dispatchers
@@ -84,6 +85,37 @@ class SalesRepository(
 
     suspend fun deleteProduct(id: Int) = withContext(Dispatchers.IO) {
         productDao.deleteProductById(id)
+    }
+
+    suspend fun syncProductsFromPostgres(locale: String): Result<List<Product>> = withContext(Dispatchers.IO) {
+        try {
+            val response = RetrofitClient.productApiService.getProducts(locale = locale)
+            if (response.success && response.data != null) {
+                val dbProducts = response.data.mapIndexed { index, apiProd ->
+                    val stockStatus = if (apiProd.inventoryCount > 0) "In Stock" else "Made to Order"
+                    Product(
+                        id = (index + 1) + 1000, // Offset remote products ID range
+                        name = apiProd.name ?: "Unnamed Carved Furniture",
+                        category = apiProd.categoryName ?: "Sofa",
+                        price = apiProd.price,
+                        material = "Guaranteed Hardwood (Wanza/Mahogany)",
+                        dimensions = "Premium Tailored Sizing",
+                        warranty = "10 Years Warranty",
+                        description = apiProd.description ?: "Bespoke handcrafted carpentry directly synchronized with executive sales collection.",
+                        stockStatus = stockStatus,
+                        imageUrl = apiProd.imageUrls?.firstOrNull() ?: ""
+                    )
+                }
+                if (dbProducts.isNotEmpty()) {
+                    productDao.insertProducts(dbProducts)
+                }
+                Result.success(dbProducts)
+            } else {
+                Result.failure(Exception(response.message ?: "Failed to retrieve catalog products cleanly."))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     suspend fun insertQuotation(quotation: Quotation): Long = withContext(Dispatchers.IO) {
@@ -164,7 +196,7 @@ class SalesRepository(
                     isEnabled = true,
                     customGreeting = "Welcome to Bekansi Furniture! We craft premium local hardwood masterpieces (Wanza, Mahogany, Acacia). How can we assist you today?",
                     customFallback = "Please allow our sales team to assist you further on this specific matter.",
-                    systemPromptOverride = "Our showroom is based in Addis Ababa, Ethiopia. Custom orders take strictly 3-4 weeks to manufacture. Free design consulting is provided."
+                    systemPromptOverride = "Our showroom and workshop are located in Bishoftu City, Dukem Subcity. Custom orders take strictly 3-4 weeks to manufacture. Free design consulting is provided. Our phone numbers are 0988828861/0910824534."
                 ),
                 LanguageConfig(
                     code = "am",
@@ -172,7 +204,7 @@ class SalesRepository(
                     isEnabled = true,
                     customGreeting = "እንኳን ወደ በካንሲ የቤት ዕቃዎች በደህና መጡ! በጥራት ከተመረጡ ሀገር በቀል ጠንካራ እንጨቶች (ዋንዛ፣ ማሆጋኒ፣ ግራር) የተሰሩ ሶፋዎች እና ጠረጴዛዎች በምን እንዲረዳዎት ይፈልጋሉ?",
                     customFallback = "እባክዎን የሽያጭ ቡድናችን በዚህ ጉዳይ ላይ በበለጠ እንዲረዳዎት ይፍቀዱ።",
-                    systemPromptOverride = "የማሳያ ክፍላችን በአዲስ አበባ ውስጥ ይገኛል። ትዕዛዞች በ3-4 ሳምንታት ውስጥ ተጠናቀው ይረከባሉ። በአዲስ አበባ ውስጥ የማጓጓዣ ዋጋ 5,000 ብር ነው።"
+                    systemPromptOverride = "የማሳያ ክፍላችን እና ወርክሾፓችን በቢሾፍቱ ከተማ፣ ዱከም ክፍለ ከተማ ውስጥ ይገኛል። ትዕዛዞች በ3-4 ሳምንታት ውስጥ ተጠናቀው ይረከባሉ። የስልክ አድራሻችን 0988828861/0910824534 ነው።"
                 ),
                 LanguageConfig(
                     code = "om",
@@ -180,7 +212,7 @@ class SalesRepository(
                     isEnabled = true,
                     customGreeting = "Baga nagaan gara Bekansi Furniture dhuftan! Hardwood beekamaa Itoophiyaa (Wanza, Mahogany, Grar) irraa kan hojjetameedha. Akkamitti isin gargaaruu danda'a?",
                     customFallback = "Mee dhimma kana irratti gurgurtonni keenya caalaatti akka isin gargaaran eeyyamaa.",
-                    systemPromptOverride = "Showroomiin keenya Finfinnee keessatti argama. Ergisa dhimmoota addaa torbannoottan 3-4 keessatti ni qopheessina. Geejjibni Finfinnee keessatti 5,000 ETB dha."
+                    systemPromptOverride = "Showroomiin fi mishiinni hojii keenya Magaalaa Bishooftuu, Kifla Magaalaa Dukam keessatti argama. Ergisa dhimmoota addaa torbannoottan 3-4 keessatti ni qopheessina. Bilbilli keenya 0988828861/0910824534."
                 )
             )
             languageConfigDao.insertLanguages(defaults)
@@ -252,9 +284,9 @@ class SalesRepository(
         if (currentLeads.isEmpty()) {
             val defaults = listOf(
                 Lead(
-                    name = "Chala Kebede",
+                    name = "Bekansi",
                     phone = "0910824534",
-                    email = "chala.kebede@yahoo.com",
+                    email = "contact@bekansi.com",
                     status = "New",
                     source = "WhatsApp",
                     requirements = "Inquiring about custom hardwood products",
@@ -262,9 +294,9 @@ class SalesRepository(
                     language = "Afaan Oromo"
                 ),
                 Lead(
-                    name = "Tewodros Alene",
+                    name = "Abdi Biya",
                     phone = "0988828861",
-                    email = "tewodros.alene@gmail.com",
+                    email = "abdi.biya@gmail.com",
                     status = "New",
                     source = "Telegram",
                     requirements = "Requesting about custom products inquiry",
@@ -381,7 +413,7 @@ class SalesRepository(
             }
 
             // 3. Kitchen Cabinets (8)
-            val kitchenNames = listOf("Gofa Modular Culinary", "Bole Luxury High-Gloss", "Saris Granite Oak Kitchen", "Mercato Bulk Pantry Kitchen", "Kazanchis Classic Shaker", "Old Airport Walnut Gourmet", "Lideta Compact Chef Cabinets", "Meskel Square Royal Cabinets")
+            val kitchenNames = listOf("Gofa Modular Culinary", "Dukem Luxury High-Gloss", "Saris Granite Oak Kitchen", "Mercato Bulk Pantry Kitchen", "Kazanchis Classic Shaker", "Old Airport Walnut Gourmet", "Lideta Compact Chef Cabinets", "Meskel Square Royal Cabinets")
             val kitchenImages = listOf(
                 "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=600",
                 "https://images.unsplash.com/photo-1556912173-3bb406ef7e77?w=600",

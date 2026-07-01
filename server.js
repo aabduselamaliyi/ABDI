@@ -30,6 +30,8 @@ const leadsRouter = require('./routes/leads');
 const customersRouter = require('./routes/customers');
 const quotationsRouter = require('./routes/quotations');
 const conversationsRouter = require('./routes/conversations');
+const smmRouter = require('./routes/smm');
+const smmService = require('./services/smmService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -118,6 +120,7 @@ app.use('/api/v1/leads', leadsRouter);
 app.use('/api/v1/customers', customersRouter);
 app.use('/api/v1/quotations', quotationsRouter);
 app.use('/api/v1/conversations', conversationsRouter);
+app.use('/api/v1/smm', smmRouter);
 
 // Set root welcome redirect index
 app.get('/', (req, res) => {
@@ -178,6 +181,9 @@ const server = app.listen(PORT, '0.0.0.0', () => {
     logger.info(`  Environment: ${process.env.NODE_ENV || 'development'}                `);
     logger.info(`  API Gateway: http://0.0.0.0:${PORT}                                  `);
     logger.info(`======================================================================`);
+    
+    // Start SMM Scheduler automation
+    smmService.startSmmScheduler();
 });
 
 // Handle sudden VM or Container terminations gracefully
@@ -186,6 +192,7 @@ const handleProcessTermination = async (signal) => {
     
     server.close(async () => {
         logger.info('HTTP server handles closed. Terminating physical active pools...');
+        smmService.stopSmmScheduler();
         await dbPool.shutdownDbPool();
         logger.info('Environment variables flush completed. Process exiting safely.');
         process.exit(0);

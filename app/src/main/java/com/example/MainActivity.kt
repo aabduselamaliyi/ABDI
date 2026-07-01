@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -44,9 +45,12 @@ import com.example.ui.SalesViewModel
 import com.example.ui.SalesViewModelFactory
 import com.example.ui.DesignAlbumsTab
 import com.example.ui.SmmPlannerTab
+import com.example.ui.AiEmployeeTab
 import com.example.ui.theme.*
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.grid.*
+import androidx.compose.ui.platform.testTag
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -81,8 +85,20 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(innerPadding)
-                            .background(MaterialTheme.colorScheme.background)
                     ) {
+                        // High-tech App Background matching Bekansi AI branding
+                        Image(
+                            painter = painterResource(id = R.drawable.img_bekansi_bg),
+                            contentDescription = "App Background",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                        // Dark semi-transparent overlay to ensure text is perfectly legible
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color(0xFF130026).copy(alpha = 0.85f))
+                        )
                         EnterpriseMainScreen(viewModel)
                     }
                 }
@@ -97,7 +113,7 @@ fun EnterpriseMainScreen(viewModel: SalesViewModel) {
     val coroutineScope = rememberCoroutineScope()
 
     // Screen State
-    var activeTab by remember { mutableStateOf("OMNICHANNEL_CHAT") } // OMNICHANNEL_CHAT, ADMIN_LANG, CRM_LEADS, QUOTE_ENGINE, PRODUCTS
+    var activeTab by remember { mutableStateOf("DASHBOARD") } // DASHBOARD, AI_EMPLOYEE, OMNICHANNEL_CHAT, ADMIN_LANG, CRM_LEADS, QUOTE_ENGINE, PRODUCTS, DESIGN_ALBUMS, SMM_PLANNER
 
     // Fetch Flow States
     val languages by viewModel.allLanguages.collectAsState()
@@ -112,87 +128,334 @@ fun EnterpriseMainScreen(viewModel: SalesViewModel) {
     // Find custom configurations
     val activeLangConfig = languages.firstOrNull { it.code == selectedLanguageCode }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        // High-end Ethiopian Showcase Header
-        HeaderBrandingPanel(
-            totalLeads = leads.size,
-            totalQuotes = quotations.size
+    val navItems = remember(leads.size, quotations.size) {
+        listOf(
+            NavigationItem("DASHBOARD", "Dashboard", Icons.Default.Home),
+            NavigationItem("AI_EMPLOYEE", "AI Employee 🤖", Icons.Default.Build, badgeLabel = "Active", badgeColor = Color(0xFFCCA43B)),
+            NavigationItem("OMNICHANNEL_CHAT", "Chat Sim", Icons.Default.Call, badgeLabel = "Omni", badgeColor = Color(0xFF818CF8)),
+            NavigationItem("ADMIN_LANG", "Admin Lang", Icons.Default.Settings),
+            NavigationItem("CRM_LEADS", "CRM Leads", Icons.Default.Person, badgeCount = leads.size, badgeColor = AccentSuccess),
+            NavigationItem("QUOTE_ENGINE", "Quotes", Icons.Default.ShoppingCart, badgeCount = quotations.size, badgeColor = AccentWarning),
+            NavigationItem("PRODUCTS", "Catalog", Icons.Default.List),
+            NavigationItem("DESIGN_ALBUMS", "Albums", Icons.Default.Favorite),
+            NavigationItem("SMM_PLANNER", "Social SMM", Icons.Default.Share)
         )
+    }
 
-        // Tab Row selector
-        TabSelectorRow(
-            activeTab = activeTab,
-            onTabSelected = { activeTab = it }
-        )
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val isTablet = maxWidth >= 768.dp
 
-        // Main platform workstation
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .padding(12.dp)
-        ) {
-            when (activeTab) {
-                "OMNICHANNEL_CHAT" -> {
-                    OmnichannelChatTab(
-                        activeChannel = activeChannel,
-                        onChannelUpdated = { viewModel.activeChannel.value = it },
-                        selectedLanguage = selectedLanguageCode,
-                        onLanguageUpdated = {
-                            viewModel.selectedLanguage.value = it
-                            viewModel.refreshInitialGreetings()
-                            Toast.makeText(context, "Switched chat simulation to language: $it", Toast.LENGTH_SHORT).show()
-                        },
-                        messages = currentChannelMessages,
-                        isAIThinking = isAIThinking,
-                        langConfig = activeLangConfig,
-                        onMessageSent = { viewModel.sendCustomerMessage(it) },
-                        onClearChat = { viewModel.clearChatMessages() }
-                    )
+        if (isTablet) {
+            // TABLET / DESKTOP PERSISTENT SIDEBAR LAYOUT
+            Row(modifier = Modifier.fillMaxSize()) {
+                // Persistent Sidebar
+                Surface(
+                    modifier = Modifier
+                        .width(270.dp)
+                        .fillMaxHeight(),
+                    color = Color(0xFF130026).copy(alpha = 0.95f),
+                    border = BorderStroke(1.dp, Color(0xFF00E5FF).copy(alpha = 0.15f))
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp)
+                    ) {
+                        // Branding Panel
+                        SidebarBrandingHeader(leads.size, quotations.size)
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "WORKSTATION HUB",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color(0xFF8D8580),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        )
+                        
+                        // Sidebar Navigation List
+                        LazyColumn(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            items(navItems) { item ->
+                                SidebarNavItem(
+                                    item = item,
+                                    isSelected = activeTab == item.id,
+                                    onClick = { activeTab = item.id }
+                                )
+                            }
+                        }
+
+                        // Footer
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFE2D9FF).copy(alpha = 0.1f)))
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = "Bishoftu City, Dukem Subcity\nShowroom & Workshop",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFF8D8580),
+                            modifier = Modifier.padding(horizontal = 12.dp)
+                        )
+                    }
                 }
 
-                "ADMIN_LANG" -> {
-                    MultilingualAdminTab(
+                // Workstation Panel
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .padding(16.dp)
+                ) {
+                    WorkstationContent(
+                        activeTab = activeTab,
+                        viewModel = viewModel,
                         languages = languages,
-                        onUpdateLanguages = { viewModel.updateLanguageConfig(it) }
-                    )
-                }
-
-                "CRM_LEADS" -> {
-                    CrmLeadsTab(
-                        leads = leads,
-                        onAddLead = { viewModel.addLead(it) },
-                        onUpdateStatus = { lead, stat -> viewModel.updateLeadStatus(lead, stat) },
-                        onDeleteLead = { viewModel.deleteLead(it) }
-                    )
-                }
-
-                "QUOTE_ENGINE" -> {
-                    QuotationEngineTab(
                         leads = leads,
                         products = products,
                         quotations = quotations,
-                        onGenerateQuote = { lead, prod, mat, lab, transport, prof, dims, est ->
-                            viewModel.generateInteractiveQuotation(lead, prod, mat, lab, transport, prof, dims, est)
-                        },
-                        onDeleteQuote = { viewModel.deleteQuotation(it) }
+                        currentChannelMessages = currentChannelMessages,
+                        activeChannel = activeChannel,
+                        selectedLanguageCode = selectedLanguageCode,
+                        isAIThinking = isAIThinking,
+                        activeLangConfig = activeLangConfig,
+                        context = context,
+                        onTabChange = { activeTab = it }
                     )
                 }
+            }
+        } else {
+            // MOBILE COLLAPSIBLE DRAWER LAYOUT
+            val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
 
-                "PRODUCTS" -> {
-                    ProductCatalogTab(
-                        products = products,
-                        onAddProduct = { viewModel.addProduct(it) },
-                        onDeleteProduct = { viewModel.deleteProduct(it) }
+            ModalNavigationDrawer(
+                drawerState = drawerState,
+                drawerContent = {
+                    ModalDrawerSheet(
+                        drawerContainerColor = Color(0xFF130026).copy(alpha = 0.98f),
+                        modifier = Modifier
+                            .width(290.dp)
+                            .fillMaxHeight()
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp)
+                        ) {
+                            // Drawer Branding Header
+                            SidebarBrandingHeader(leads.size, quotations.size)
+
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "WORKSTATION HUB",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Black,
+                                color = Color(0xFF8D8580),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                            )
+
+                            // Drawer Navigation List
+                            LazyColumn(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                items(navItems) { item ->
+                                    SidebarNavItem(
+                                        item = item,
+                                        isSelected = activeTab == item.id,
+                                        onClick = {
+                                            activeTab = item.id
+                                            coroutineScope.launch { drawerState.close() }
+                                        }
+                                    )
+                                }
+                            }
+
+                            // Footer
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFE2D9FF).copy(alpha = 0.1f)))
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                text = "Bishoftu City, Dukem Subcity\nShowroom & Workshop",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF8D8580),
+                                modifier = Modifier.padding(horizontal = 12.dp)
+                            )
+                        }
+                    }
+                }
+            ) {
+                // Mobile Main Scaffold / Screening Area
+                Column(modifier = Modifier.fillMaxSize()) {
+                    // Mobile Header with Hamburger
+                    MobileHeaderBranding(
+                        currentTabName = navItems.find { it.id == activeTab }?.label ?: "Workstation",
+                        onMenuClick = {
+                            coroutineScope.launch { drawerState.open() }
+                        }
+                    )
+
+                    // Workstation Panel
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .padding(12.dp)
+                    ) {
+                        WorkstationContent(
+                            activeTab = activeTab,
+                            viewModel = viewModel,
+                            languages = languages,
+                            leads = leads,
+                            products = products,
+                            quotations = quotations,
+                            currentChannelMessages = currentChannelMessages,
+                            activeChannel = activeChannel,
+                            selectedLanguageCode = selectedLanguageCode,
+                            isAIThinking = isAIThinking,
+                            activeLangConfig = activeLangConfig,
+                            context = context,
+                            onTabChange = { activeTab = it }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+data class NavigationItem(
+    val id: String,
+    val label: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val badgeCount: Int? = null,
+    val badgeLabel: String? = null,
+    val badgeColor: Color? = null
+)
+
+@Composable
+fun SidebarBrandingHeader(totalLeads: Int, totalQuotes: Int) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.img_bekansi_logo),
+                contentDescription = "Bekansi AI Logo",
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .border(1.5.dp, Color(0xFF00E5FF), RoundedCornerShape(8.dp)),
+                contentScale = ContentScale.Crop
+            )
+
+            Column {
+                Text(
+                    text = "BEKANSI AI",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Black,
+                    color = Color(0xFF00E5FF),
+                    letterSpacing = 1.sp
+                )
+                Text(
+                    text = "Smarter. Faster.",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFFE2D9FF)
+                )
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Box(modifier = Modifier.weight(1f)) {
+                MetricsBadge(label = "CRM Leads", value = totalLeads.toString(), color = AccentSuccess)
+            }
+            Box(modifier = Modifier.weight(1f)) {
+                MetricsBadge(label = "Quotes", value = totalQuotes.toString(), color = AccentWarning)
+            }
+        }
+    }
+}
+
+@Composable
+fun SidebarNavItem(
+    item: NavigationItem,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val containerBg = if (isSelected) WarmMahogany else Color.Transparent
+    val contentCol = if (isSelected) TextLight else TextMuted
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(containerBg)
+            .clickable(onClick = onClick)
+            .testTag("sidebar_nav_item_${item.id.lowercase()}")
+            .heightIn(min = 48.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Icon(
+                    imageVector = item.icon,
+                    contentDescription = item.label,
+                    tint = contentCol,
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    text = item.label,
+                    fontSize = 13.sp,
+                    color = contentCol,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                )
+            }
+
+            if (item.badgeCount != null) {
+                Surface(
+                    color = item.badgeColor ?: WarmMahogany,
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text(
+                        text = item.badgeCount.toString(),
+                        fontSize = 9.sp,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                     )
                 }
-
-                "DESIGN_ALBUMS" -> {
-                    DesignAlbumsTab(viewModel = viewModel)
-                }
-
-                "SMM_PLANNER" -> {
-                    SmmPlannerTab(viewModel = viewModel)
+            } else if (item.badgeLabel != null) {
+                Surface(
+                    color = item.badgeColor ?: WarmMahogany,
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text(
+                        text = item.badgeLabel,
+                        fontSize = 9.sp,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
                 }
             }
         }
@@ -200,9 +463,169 @@ fun EnterpriseMainScreen(viewModel: SalesViewModel) {
 }
 
 @Composable
+fun MobileHeaderBranding(
+    currentTabName: String,
+    onMenuClick: () -> Unit
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF130026).copy(alpha = 0.9f)),
+        shape = RoundedCornerShape(0.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                IconButton(
+                    onClick = onMenuClick,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .testTag("mobile_hamburger_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Menu,
+                        contentDescription = "Open Sidebar Navigation",
+                        tint = Color(0xFF00E5FF)
+                    )
+                }
+
+                Column {
+                    Text(
+                        text = "BEKANSI AI",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color(0xFF00E5FF),
+                        letterSpacing = 1.sp
+                    )
+                    Text(
+                        text = currentTabName,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFE2D9FF)
+                    )
+                }
+            }
+
+            Image(
+                painter = painterResource(id = R.drawable.img_bekansi_logo),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .border(1.dp, Color(0xFF00E5FF), RoundedCornerShape(6.dp)),
+                contentScale = ContentScale.Crop
+            )
+        }
+    }
+}
+
+@Composable
+fun WorkstationContent(
+    activeTab: String,
+    viewModel: SalesViewModel,
+    languages: List<LanguageConfig>,
+    leads: List<Lead>,
+    products: List<Product>,
+    quotations: List<Quotation>,
+    currentChannelMessages: List<Conversation>,
+    activeChannel: String,
+    selectedLanguageCode: String,
+    isAIThinking: Boolean,
+    activeLangConfig: LanguageConfig?,
+    context: android.content.Context,
+    onTabChange: (String) -> Unit
+) {
+    when (activeTab) {
+        "DASHBOARD" -> {
+            DashboardTab(
+                viewModel = viewModel,
+                leads = leads,
+                quotations = quotations,
+                onTabChange = onTabChange
+            )
+        }
+
+        "OMNICHANNEL_CHAT" -> {
+            OmnichannelChatTab(
+                activeChannel = activeChannel,
+                onChannelUpdated = { viewModel.activeChannel.value = it },
+                selectedLanguage = selectedLanguageCode,
+                onLanguageUpdated = {
+                    viewModel.selectedLanguage.value = it
+                    viewModel.refreshInitialGreetings()
+                    Toast.makeText(context, "Switched chat simulation to language: $it", Toast.LENGTH_SHORT).show()
+                },
+                messages = currentChannelMessages,
+                isAIThinking = isAIThinking,
+                langConfig = activeLangConfig,
+                onMessageSent = { viewModel.sendCustomerMessage(it) },
+                onClearChat = { viewModel.clearChatMessages() }
+            )
+        }
+
+        "ADMIN_LANG" -> {
+            MultilingualAdminTab(
+                languages = languages,
+                onUpdateLanguages = { viewModel.updateLanguageConfig(it) }
+            )
+        }
+
+        "CRM_LEADS" -> {
+            CrmLeadsTab(
+                leads = leads,
+                onAddLead = { viewModel.addLead(it) },
+                onUpdateStatus = { lead, stat -> viewModel.updateLeadStatus(lead, stat) },
+                onDeleteLead = { viewModel.deleteLead(it) }
+            )
+        }
+
+        "QUOTE_ENGINE" -> {
+            QuotationEngineTab(
+                leads = leads,
+                products = products,
+                quotations = quotations,
+                onGenerateQuote = { lead, prod, mat, lab, transport, prof, dims, est ->
+                    viewModel.generateInteractiveQuotation(lead, prod, mat, lab, transport, prof, dims, est)
+                },
+                onDeleteQuote = { viewModel.deleteQuotation(it) }
+            )
+        }
+
+        "PRODUCTS" -> {
+            ProductCatalogTab(
+                viewModel = viewModel,
+                products = products,
+                onAddProduct = { viewModel.addProduct(it) },
+                onDeleteProduct = { viewModel.deleteProduct(it) }
+            )
+        }
+
+        "DESIGN_ALBUMS" -> {
+            DesignAlbumsTab(viewModel = viewModel)
+        }
+
+        "AI_EMPLOYEE" -> {
+            AiEmployeeTab(viewModel = viewModel)
+        }
+
+        "SMM_PLANNER" -> {
+            SmmPlannerTab(viewModel = viewModel)
+        }
+    }
+}
+
+@Composable
 fun HeaderBrandingPanel(totalLeads: Int, totalQuotes: Int) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF130026).copy(alpha = 0.9f)),
         shape = RoundedCornerShape(0.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -213,20 +636,36 @@ fun HeaderBrandingPanel(totalLeads: Int, totalQuotes: Int) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Column {
-                Text(
-                    text = "BEKANSI AI SALES PLATFORM",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = GoldAccent,
-                    letterSpacing = 1.sp
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Customized logo
+                Image(
+                    painter = painterResource(id = R.drawable.img_bekansi_logo),
+                    contentDescription = "Bekansi AI Logo",
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .border(1.5.dp, Color(0xFF00E5FF), RoundedCornerShape(8.dp)), // Glowing cyan border
+                    contentScale = ContentScale.Crop
                 )
-                Text(
-                    text = "Ethiopian Multilingual Omnichannel Hub & Bespoke Interior CRM",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Light,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+
+                Column {
+                    Text(
+                        text = "BEKANSI AI SALES",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color(0xFF00E5FF), // Cyan glow color
+                        letterSpacing = 1.5.sp
+                    )
+                    Text(
+                        text = "Smarter. Faster. Automated.",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFFE2D9FF) // Light purple tint
+                    )
+                }
             }
 
             // High level indicators
@@ -265,6 +704,8 @@ fun TabSelectorRow(activeTab: String, onTabSelected: (String) -> Unit) {
             .padding(vertical = 4.dp, horizontal = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        TabItem(icon = Icons.Default.Home, label = "Dashboard", isSelected = activeTab == "DASHBOARD", onClick = { onTabSelected("DASHBOARD") })
+        TabItem(icon = Icons.Default.Build, label = "AI Employee", isSelected = activeTab == "AI_EMPLOYEE", onClick = { onTabSelected("AI_EMPLOYEE") })
         TabItem(icon = Icons.Default.Call, label = "Chat Sim", isSelected = activeTab == "OMNICHANNEL_CHAT", onClick = { onTabSelected("OMNICHANNEL_CHAT") })
         TabItem(icon = Icons.Default.Settings, label = "Admin Lang", isSelected = activeTab == "ADMIN_LANG", onClick = { onTabSelected("ADMIN_LANG") })
         TabItem(icon = Icons.Default.Person, label = "CRM Leads", isSelected = activeTab == "CRM_LEADS", onClick = { onTabSelected("CRM_LEADS") })
@@ -1153,232 +1594,864 @@ fun QuotationEngineTab(
     onDeleteQuote: (Int) -> Unit
 ) {
     val context = LocalContext.current
+    var activeSubTab by remember { mutableStateOf("BUILDER") } // "BUILDER", "HISTORY"
 
-    // Active generate form states
+    // Search queries
+    var leadSearchQuery by remember { mutableStateOf("") }
+    var productSearchQuery by remember { mutableStateOf("") }
+    var historySearchQuery by remember { mutableStateOf("") }
+
+    // Indices (referencing filtered lists)
     var selectedLeadIndex by remember { mutableStateOf(0) }
     var selectedProductIndex by remember { mutableStateOf(0) }
+
+    // Multipliers & specification state
+    var quantity by remember { mutableStateOf(1) }
+    var selectedMaterialMultiplier by remember { mutableStateOf(1.2) } // default Wanza
+    var selectedMaterialName by remember { mutableStateOf("Wanza") }
+
+    var customLaborCostInput by remember { mutableStateOf("") }
+    var selectedLocationName by remember { mutableStateOf("Addis Standard") }
+    var transportCostValue by remember { mutableStateOf(4000.0) }
+    var deliveryTimeEstimateValue by remember { mutableStateOf("2 Weeks") }
+
     var profitMargin by remember { mutableStateOf(20f) }
-    var customMaterialsCost by remember { mutableStateOf("") }
-    var customLaborCost by remember { mutableStateOf("") }
-    var customTransportCost by remember { mutableStateOf("5000") } // Addis Standard 5000 Birr
     var customDimensions by remember { mutableStateOf("") }
-    var customDeliveryEstimate by remember { mutableStateOf("3 Weeks") }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        Text(
-            text = "AI-Driven Quotation Engine (VAT & Margin Calculator)",
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-            color = GoldAccent
-        )
-        Text(
-            text = "Generate professional legal quotes for custom hardwood designs using automatic Ethiopian tax rates (15% VAT).",
-            fontSize = 11.sp,
-            color = TextMuted,
-            modifier = Modifier.padding(bottom = 6.dp)
-        )
+    // Filtered lists
+    val filteredLeads = remember(leads, leadSearchQuery) {
+        leads.filter { it.name.contains(leadSearchQuery, ignoreCase = true) }
+    }
+    val filteredProducts = remember(products, productSearchQuery) {
+        products.filter { it.name.contains(productSearchQuery, ignoreCase = true) }
+    }
 
-        if (leads.isEmpty() || products.isEmpty()) {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp)
-            ) {
+    val activeLead = filteredLeads.getOrNull(selectedLeadIndex) ?: filteredLeads.getOrNull(0) ?: leads.getOrNull(0)
+    val activeProduct = filteredProducts.getOrNull(selectedProductIndex) ?: filteredProducts.getOrNull(0) ?: products.getOrNull(0)
+
+    // Prefill dimensions on product selection
+    LaunchedEffect(activeProduct) {
+        if (activeProduct != null) {
+            customDimensions = activeProduct.dimensions
+        }
+    }
+
+    // Dynamic Mathematical Calculations (work-sheet bindings)
+    val basePriceCalculated = (activeProduct?.price ?: 0.0) * quantity
+    val computedMaterialCost = basePriceCalculated * 0.4 * selectedMaterialMultiplier
+    val computedLaborCost = customLaborCostInput.toDoubleOrNull() ?: (basePriceCalculated * 0.2)
+    val computedTransportCost = transportCostValue
+
+    val rawCostBeforeMargin = computedMaterialCost + computedLaborCost + computedTransportCost
+    val markupProfitAmount = rawCostBeforeMargin * (profitMargin / 100.0)
+    val subtotalCalculated = rawCostBeforeMargin + markupProfitAmount
+    val vatCalculated = subtotalCalculated * 0.15
+    val grandTotalCalculated = subtotalCalculated + vatCalculated
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // HEADER Block
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
                 Text(
-                    text = "Requires at least 1 lead inside the CRM and 1 product item inside the inventory catalog to function. Please register items in adjacent tabs.",
+                    text = "Quotation Workspace",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = WarmMahogany
+                )
+                Text(
+                    text = "Custom hardwood pricing, VAT, margin, and logistics calculator.",
                     fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                    modifier = Modifier.padding(10.dp)
+                    color = TextMuted
                 )
             }
-        } else {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = LightWarmCard),
-                modifier = Modifier.fillMaxWidth()
+            Icon(
+                imageVector = Icons.Default.ShoppingCart,
+                contentDescription = null,
+                tint = GoldAccent,
+                modifier = Modifier.size(28.dp)
+            )
+        }
+
+        // Sub-tab Pill Row
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(LightWarmCard.copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+                .padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Surface(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { activeSubTab = "BUILDER" },
+                shape = RoundedCornerShape(20.dp),
+                color = if (activeSubTab == "BUILDER") WarmMahogany else Color.Transparent
             ) {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(280.dp)
-                        .padding(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    item {
-                        Text("1. Target Customer Lead Selection", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = WarmMahogany)
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            leads.forEachIndexed { i, l ->
-                                val active = selectedLeadIndex == i
-                                Surface(
-                                    shape = RoundedCornerShape(6.dp),
-                                    color = if (active) WarmMahogany else MaterialTheme.colorScheme.surface,
-                                    modifier = Modifier
-                                        .clickable { selectedLeadIndex = i }
-                                        .weight(1f)
-                                ) {
-                                    Text(
-                                        text = l.name,
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (active) TextLight else TextDark,
-                                        textAlign = TextAlign.Center,
-                                        modifier = Modifier.padding(6.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    item {
-                        Text("2. Catalog Base Product Pairing", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = WarmMahogany)
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            products.take(3).forEachIndexed { i, p ->
-                                val active = selectedProductIndex == i
-                                Surface(
-                                    shape = RoundedCornerShape(6.dp),
-                                    color = if (active) WarmMahogany else MaterialTheme.colorScheme.surface,
-                                    modifier = Modifier
-                                        .clickable { selectedProductIndex = i }
-                                        .weight(1f)
-                                ) {
-                                    Text(
-                                        text = p.name.substringBefore(" '"),
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (active) TextLight else TextDark,
-                                        textAlign = TextAlign.Center,
-                                        modifier = Modifier.padding(6.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    item {
-                        Text("3. Cost Parameters & Custom Dimensions", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = WarmMahogany)
-                    }
-
-                    item {
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            TextField(
-                                value = customDimensions,
-                                onValueChange = { customDimensions = it },
-                                placeholder = { Text("Dimensions overrides", fontSize = 10.sp) },
-                                label = { Text("Size (e.g. 270x190cm)", fontSize = 8.sp) },
-                                modifier = Modifier.weight(1f),
-                                colors = TextFieldDefaults.colors(focusedIndicatorColor = WarmMahogany)
-                            )
-                            TextField(
-                                value = customDeliveryEstimate,
-                                onValueChange = { customDeliveryEstimate = it },
-                                label = { Text("Timeframe (e.g. 3 Weeks)", fontSize = 8.sp) },
-                                modifier = Modifier.weight(1f),
-                                colors = TextFieldDefaults.colors(focusedIndicatorColor = WarmMahogany)
-                            )
-                        }
-                    }
-
-                    item {
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            TextField(
-                                value = customMaterialsCost,
-                                onValueChange = { customMaterialsCost = it },
-                                label = { Text("Material Cost (ETB)", fontSize = 8.sp) },
-                                modifier = Modifier.weight(1f),
-                                colors = TextFieldDefaults.colors(focusedIndicatorColor = WarmMahogany)
-                            )
-                            TextField(
-                                value = customLaborCost,
-                                onValueChange = { customLaborCost = it },
-                                label = { Text("Labor Cost (ETB)", fontSize = 8.sp) },
-                                modifier = Modifier.weight(1f),
-                                colors = TextFieldDefaults.colors(focusedIndicatorColor = WarmMahogany)
-                            )
-                            TextField(
-                                value = customTransportCost,
-                                onValueChange = { customTransportCost = it },
-                                label = { Text("Transport (ETB)", fontSize = 8.sp) },
-                                modifier = Modifier.weight(1f),
-                                colors = TextFieldDefaults.colors(focusedIndicatorColor = WarmMahogany)
-                            )
-                        }
-                    }
-
-                    item {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text("Desired Profit Margin: ${profitMargin.toInt()}%", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextDark)
-                            Slider(
-                                value = profitMargin,
-                                onValueChange = { profitMargin = it },
-                                valueRange = 5f..60f,
-                                modifier = Modifier.width(180.dp),
-                                colors = SliderDefaults.colors(thumbColor = WarmMahogany, activeTrackColor = WarmMahogany)
-                            )
-                        }
-                    }
-
-                    item {
-                        Button(
-                            onClick = {
-                                val lead = leads.getOrNull(selectedLeadIndex)
-                                val product = products.getOrNull(selectedProductIndex)
-                                if (lead != null && product != null) {
-                                    val mat = customMaterialsCost.toDoubleOrNull() ?: 0.0
-                                    val lab = customLaborCost.toDoubleOrNull() ?: 0.0
-                                    val trans = customTransportCost.toDoubleOrNull() ?: 0.0
-
-                                    onGenerateQuote(
-                                        lead,
-                                        product,
-                                        mat,
-                                        lab,
-                                        trans,
-                                        profitMargin.toDouble(),
-                                        customDimensions,
-                                        customDeliveryEstimate
-                                    )
-                                    Toast.makeText(context, "Quotation generated successfully to database!", Toast.LENGTH_SHORT).show()
-                                }
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = WarmMahogany),
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Compute and Generate Printable Legal Quote", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 10.dp)) {
+                    Text(
+                        text = "✍️ Live Quote Builder",
+                        color = if (activeSubTab == "BUILDER") Color.White else TextDark,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+            Surface(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { activeSubTab = "HISTORY" },
+                shape = RoundedCornerShape(20.dp),
+                color = if (activeSubTab == "HISTORY") WarmMahogany else Color.Transparent
+            ) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 10.dp)) {
+                    Text(
+                        text = "📜 Issued History (${quotations.size})",
+                        color = if (activeSubTab == "HISTORY") Color.White else TextDark,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp
+                    )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        if (activeSubTab == "BUILDER") {
+            if (leads.isEmpty() || products.isEmpty()) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(40.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "CRM Leads & Product Inventory Required",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "To build customized quotes, the system requires at least 1 registered customer lead in the database and 1 product item in your inventory catalog.",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            } else {
+                // Main scrollable builder panel
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1.0f),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // STEP 1: Select Lead
+                    item {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = LightWarmCard.copy(alpha = 0.3f)),
+                            border = BorderStroke(1.dp, LightWarmCard),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "1. Customer Lead Select",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = WarmMahogany
+                                    )
+                                    activeLead?.let {
+                                        Text(
+                                            text = "Selected: ${it.name}",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = AccentSuccess
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
 
-        // History list of generated quotations with printable layouts
-        Text("Historic Quotation Records", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextDark)
-        if (quotations.isEmpty()) {
-            Box(
-                modifier = Modifier.weight(1f),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("No quotes issued yet", fontSize = 12.sp, color = TextMuted)
+                                // Search Box
+                                OutlinedTextField(
+                                    value = leadSearchQuery,
+                                    onValueChange = { 
+                                        leadSearchQuery = it
+                                        selectedLeadIndex = 0 // reset selection on search
+                                    },
+                                    placeholder = { Text("Search client name...", fontSize = 11.sp) },
+                                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(46.dp),
+                                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp),
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = WarmMahogany,
+                                        unfocusedBorderColor = LightWarmCard
+                                    )
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                if (filteredLeads.isEmpty()) {
+                                    Text("No matching leads found.", fontSize = 11.sp, color = TextMuted)
+                                } else {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .horizontalScroll(rememberScrollState()),
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        filteredLeads.forEachIndexed { idx, l ->
+                                            val isSelected = activeLead?.id == l.id
+                                            Surface(
+                                                modifier = Modifier
+                                                    .width(130.dp)
+                                                    .clickable { selectedLeadIndex = idx },
+                                                shape = RoundedCornerShape(8.dp),
+                                                color = if (isSelected) WarmMahogany else LightWarmCard,
+                                                border = BorderStroke(1.dp, if (isSelected) GoldAccent else Color.Transparent)
+                                            ) {
+                                                Column(modifier = Modifier.padding(8.dp)) {
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        modifier = Modifier.fillMaxWidth()
+                                                    ) {
+                                                        Text(
+                                                            text = l.name,
+                                                            fontSize = 11.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = if (isSelected) Color.White else TextDark,
+                                                            maxLines = 1
+                                                        )
+                                                        if (isSelected) {
+                                                            Icon(Icons.Default.Check, contentDescription = null, tint = GoldAccent, modifier = Modifier.size(12.dp))
+                                                        }
+                                                    }
+                                                    Text(
+                                                        text = l.phone,
+                                                        fontSize = 9.sp,
+                                                        color = if (isSelected) Color.White.copy(alpha = 0.8f) else TextMuted,
+                                                        maxLines = 1
+                                                    )
+                                                    Text(
+                                                        text = "Source: ${l.source}",
+                                                        fontSize = 8.sp,
+                                                        color = if (isSelected) GoldAccent else WarmMahogany,
+                                                        fontWeight = FontWeight.SemiBold
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // STEP 2: Select Product
+                    item {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = LightWarmCard.copy(alpha = 0.3f)),
+                            border = BorderStroke(1.dp, LightWarmCard),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "2. Catalog Product Item",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = WarmMahogany
+                                    )
+                                    activeProduct?.let {
+                                        Text(
+                                            text = "${String.format("%,.0f", it.price)} ETB",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = WarmMahogany
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                // Search Box
+                                OutlinedTextField(
+                                    value = productSearchQuery,
+                                    onValueChange = { 
+                                        productSearchQuery = it
+                                        selectedProductIndex = 0 // reset selection on search
+                                    },
+                                    placeholder = { Text("Search catalog items...", fontSize = 11.sp) },
+                                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(46.dp),
+                                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp),
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = WarmMahogany,
+                                        unfocusedBorderColor = LightWarmCard
+                                    )
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                if (filteredProducts.isEmpty()) {
+                                    Text("No matching catalog items.", fontSize = 11.sp, color = TextMuted)
+                                } else {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .horizontalScroll(rememberScrollState()),
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        filteredProducts.forEachIndexed { idx, p ->
+                                            val isSelected = activeProduct?.id == p.id
+                                            Surface(
+                                                modifier = Modifier
+                                                    .width(140.dp)
+                                                    .clickable { selectedProductIndex = idx },
+                                                shape = RoundedCornerShape(8.dp),
+                                                color = if (isSelected) WarmMahogany else LightWarmCard,
+                                                border = BorderStroke(1.dp, if (isSelected) GoldAccent else Color.Transparent)
+                                            ) {
+                                                Column(modifier = Modifier.padding(8.dp)) {
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        modifier = Modifier.fillMaxWidth()
+                                                    ) {
+                                                        Text(
+                                                            text = p.name.substringBefore(" '"),
+                                                            fontSize = 11.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = if (isSelected) Color.White else TextDark,
+                                                            maxLines = 1
+                                                        )
+                                                        if (isSelected) {
+                                                            Icon(Icons.Default.Check, contentDescription = null, tint = GoldAccent, modifier = Modifier.size(12.dp))
+                                                        }
+                                                    }
+                                                    Text(
+                                                        text = "Cat: ${p.category} | ${p.material}",
+                                                        fontSize = 9.sp,
+                                                        color = if (isSelected) Color.White.copy(alpha = 0.8f) else TextMuted,
+                                                        maxLines = 1
+                                                    )
+                                                    Spacer(modifier = Modifier.height(2.dp))
+                                                    Text(
+                                                        text = "${String.format("%,.0f", p.price)} Birr",
+                                                        fontSize = 10.sp,
+                                                        color = if (isSelected) GoldAccent else WarmMahogany,
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // STEP 3: Customize specs (Quantity & Timber & Dimensions)
+                    item {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = LightWarmCard.copy(alpha = 0.3f)),
+                            border = BorderStroke(1.dp, LightWarmCard),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Text(
+                                    text = "3. Timber Customization & Quantity",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = WarmMahogany
+                                )
+
+                                // Row 1: Quantity selector & Dimensions Text field
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // Quantity Selector
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text("Quantity Pieces", fontSize = 10.sp, color = TextMuted)
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            FilledIconButton(
+                                                onClick = { if (quantity > 1) quantity-- },
+                                                colors = IconButtonDefaults.filledIconButtonColors(containerColor = WarmMahogany),
+                                                modifier = Modifier.size(28.dp)
+                                            ) {
+                                                Text("-", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                            Text(
+                                                text = "$quantity",
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = TextDark,
+                                                modifier = Modifier.width(20.dp),
+                                                textAlign = TextAlign.Center
+                                            )
+                                            FilledIconButton(
+                                                onClick = { if (quantity < 15) quantity++ },
+                                                colors = IconButtonDefaults.filledIconButtonColors(containerColor = WarmMahogany),
+                                                modifier = Modifier.size(28.dp)
+                                            ) {
+                                                Text("+", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+                                    }
+
+                                    // Dimensions Textfield
+                                    OutlinedTextField(
+                                        value = customDimensions,
+                                        onValueChange = { customDimensions = it },
+                                        label = { Text("Dimensions overrides", fontSize = 10.sp) },
+                                        placeholder = { Text("e.g. 200x180cm", fontSize = 10.sp) },
+                                        modifier = Modifier.weight(1.5f),
+                                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 11.sp),
+                                        shape = RoundedCornerShape(8.dp),
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = WarmMahogany,
+                                            unfocusedBorderColor = LightWarmCard
+                                        )
+                                    )
+                                }
+
+                                // Row 2: Hardwood Wood Timber Multipliers
+                                Column {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text("Structural Hardwood Timber Select", fontSize = 10.sp, color = TextMuted)
+                                        Text(
+                                            text = "$selectedMaterialName Wood (${selectedMaterialMultiplier}x)",
+                                            fontSize = 10.sp,
+                                            color = WarmMahogany,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+
+                                    val materials = listOf(
+                                        Triple("MDF", 0.8, "Budget Wood"),
+                                        Triple("Grar", 1.0, "Standard Acacia"),
+                                        Triple("Wanza", 1.2, "Premium Cordia"),
+                                        Triple("Mahogany", 1.4, "Luxury Hardwood")
+                                    )
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        materials.forEach { (mName, multiplier, desc) ->
+                                            val isSelected = selectedMaterialName == mName
+                                            Surface(
+                                                modifier = Modifier
+                                                    .weight(1.0f)
+                                                    .clickable {
+                                                        selectedMaterialName = mName
+                                                        selectedMaterialMultiplier = multiplier
+                                                    },
+                                                shape = RoundedCornerShape(6.dp),
+                                                color = if (isSelected) WarmMahogany else LightWarmCard,
+                                                border = BorderStroke(1.dp, if (isSelected) GoldAccent else Color.Transparent)
+                                            ) {
+                                                Column(
+                                                    modifier = Modifier.padding(vertical = 6.dp, horizontal = 2.dp),
+                                                    horizontalAlignment = Alignment.CenterHorizontally
+                                                ) {
+                                                    Text(
+                                                        text = mName,
+                                                        fontSize = 10.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = if (isSelected) Color.White else TextDark
+                                                    )
+                                                    Text(
+                                                        text = "${multiplier}x",
+                                                        fontSize = 8.sp,
+                                                        color = if (isSelected) GoldAccent else TextMuted
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // STEP 4: Logistics & Delivery Location
+                    item {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = LightWarmCard.copy(alpha = 0.3f)),
+                            border = BorderStroke(1.dp, LightWarmCard),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    text = "4. Logistics & Destination Estimator",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = WarmMahogany
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Destination Location", fontSize = 10.sp, color = TextMuted)
+                                    Text(
+                                        text = "${selectedLocationName} | +${String.format("%,.0f", transportCostValue)} ETB",
+                                        fontSize = 10.sp,
+                                        color = WarmMahogany,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                val destinations = listOf(
+                                    Triple("Addis Standard", 4000.0, "2 Weeks"),
+                                    Triple("Bishoftu Resort", 8500.0, "2.5 Weeks"),
+                                    Triple("Adama Express", 11500.0, "3 Weeks"),
+                                    Triple("Hawassa Hub", 16000.0, "3.5 Weeks"),
+                                    Triple("Bahir Dar Hub", 22500.0, "4 Weeks")
+                                )
+
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    destinations.forEach { (locName, cost, estimate) ->
+                                        val isSelected = selectedLocationName == locName
+                                        Surface(
+                                            modifier = Modifier
+                                                .clickable {
+                                                    selectedLocationName = locName
+                                                    transportCostValue = cost
+                                                    deliveryTimeEstimateValue = estimate
+                                                },
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = if (isSelected) WarmMahogany else LightWarmCard,
+                                            border = BorderStroke(1.dp, if (isSelected) GoldAccent else Color.Transparent)
+                                        ) {
+                                            Column(modifier = Modifier.padding(8.dp)) {
+                                                Text(
+                                                    text = locName,
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (isSelected) Color.White else TextDark
+                                                )
+                                                Text(
+                                                    text = "${String.format("%,.0f", cost)} ETB",
+                                                    fontSize = 8.5.sp,
+                                                    color = if (isSelected) GoldAccent else WarmMahogany
+                                                )
+                                                Text(
+                                                    text = estimate,
+                                                    fontSize = 7.5.sp,
+                                                    color = if (isSelected) Color.White.copy(alpha = 0.8f) else TextMuted
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // STEP 5: Pricing Optimization
+                    item {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = LightWarmCard.copy(alpha = 0.3f)),
+                            border = BorderStroke(1.dp, LightWarmCard),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text(
+                                    text = "5. Craftsmanship Labor & Margin Optimization",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = WarmMahogany
+                                )
+
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    OutlinedTextField(
+                                        value = customLaborCostInput,
+                                        onValueChange = { customLaborCostInput = it },
+                                        label = { Text("Craftsmanship Labor override (ETB)", fontSize = 9.sp) },
+                                        placeholder = { Text("Defaults to 20% of catalog", fontSize = 9.sp) },
+                                        modifier = Modifier.weight(1f),
+                                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 11.sp),
+                                        shape = RoundedCornerShape(8.dp),
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = WarmMahogany,
+                                            unfocusedBorderColor = LightWarmCard
+                                        )
+                                    )
+                                }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Gross Profit Margin Target: ${profitMargin.toInt()}%",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextDark
+                                    )
+                                    Text(
+                                        text = "+${String.format("%,.0f", markupProfitAmount)} ETB",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = AccentSuccess
+                                    )
+                                }
+                                Slider(
+                                    value = profitMargin,
+                                    onValueChange = { profitMargin = it },
+                                    valueRange = 5f..60f,
+                                    colors = SliderDefaults.colors(
+                                        thumbColor = WarmMahogany,
+                                        activeTrackColor = WarmMahogany,
+                                        inactiveTrackColor = LightWarmCard
+                                    )
+                                )
+                            }
+                        }
+                    }
+
+                    // REAL-TIME WORKSHEET DASHBOARD
+                    item {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1715)), // Luxurious Dark Cocoa Card
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, GoldAccent.copy(alpha = 0.3f))
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(6.dp)
+                                                .clip(RoundedCornerShape(3.dp))
+                                                .background(GoldAccent)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "Auto-Calculation Worksheet",
+                                            color = GoldAccent,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                    Text(
+                                        text = "Live Estimate",
+                                        color = TextLight,
+                                        fontSize = 9.sp,
+                                        modifier = Modifier
+                                            .background(WarmMahogany, RoundedCornerShape(4.dp))
+                                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    // 1. Qty x Unit
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Text("Product Catalog Base (${activeProduct?.name?.substringBefore(" '") ?: "N/A"})", color = TextLight.copy(alpha = 0.7f), fontSize = 10.sp)
+                                        Text("${String.format("%,.0f", activeProduct?.price ?: 0.0)} x $quantity Pcs", color = TextLight, fontSize = 10.sp)
+                                    }
+                                    // 2. Material Adj
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Text("Adjusted Hardwood Materials (${selectedMaterialName})", color = TextLight.copy(alpha = 0.7f), fontSize = 10.sp)
+                                        Text("${String.format("%,.0f", computedMaterialCost)} ETB", color = TextLight, fontSize = 10.sp)
+                                    }
+                                    // 3. Labor Cost
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Text("Craftsmanship Labor", color = TextLight.copy(alpha = 0.7f), fontSize = 10.sp)
+                                        Text("${String.format("%,.0f", computedLaborCost)} ETB", color = TextLight, fontSize = 10.sp)
+                                    }
+                                    // 4. Logistics
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Text("Logistics: $selectedLocationName (${deliveryTimeEstimateValue})", color = TextLight.copy(alpha = 0.7f), fontSize = 10.sp)
+                                        Text("${String.format("%,.0f", computedTransportCost)} ETB", color = TextLight, fontSize = 10.sp)
+                                    }
+
+                                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = TextLight.copy(alpha = 0.1f))
+
+                                    // 5. Total Raw Cost
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Text("Total Raw Carpentry Cost", color = TextLight.copy(alpha = 0.7f), fontSize = 10.sp)
+                                        Text("${String.format("%,.0f", rawCostBeforeMargin)} ETB", color = TextLight, fontSize = 10.sp)
+                                    }
+                                    // 6. Margin Markup
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Text("Bekansi Profit Markup (${profitMargin.toInt()}%)", color = TextLight.copy(alpha = 0.7f), fontSize = 10.sp)
+                                        Text("+${String.format("%,.0f", markupProfitAmount)} ETB", color = GoldAccent, fontSize = 10.sp)
+                                    }
+
+                                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = TextLight.copy(alpha = 0.1f))
+
+                                    // 7. Subtotal (Pre-tax)
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Text("Subtotal (Pre-Tax)", color = TextLight, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                        Text("${String.format("%,.0f", subtotalCalculated)} ETB", color = TextLight, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                    }
+                                    // 8. VAT
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Text("Ethiopian VAT (15.0%)", color = TextLight.copy(alpha = 0.7f), fontSize = 10.sp)
+                                        Text("${String.format("%,.0f", vatCalculated)} ETB", color = TextLight, fontSize = 10.sp)
+                                    }
+
+                                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = GoldAccent.copy(alpha = 0.3f))
+
+                                    // 9. Grand Total
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text("GRAND TOTAL EST:", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                                        Text(
+                                            text = "${String.format("%,.2f", grandTotalCalculated)} Birr",
+                                            color = AccentSuccess,
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.Black
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Generate CTA Button
+                    item {
+                        Button(
+                            onClick = {
+                                if (activeLead != null && activeProduct != null) {
+                                    onGenerateQuote(
+                                        activeLead,
+                                        activeProduct,
+                                        computedMaterialCost,
+                                        computedLaborCost,
+                                        computedTransportCost,
+                                        profitMargin.toDouble(),
+                                        customDimensions.ifBlank { activeProduct.dimensions },
+                                        deliveryTimeEstimateValue
+                                    )
+                                    Toast.makeText(context, "Quotation generated successfully! Saved to CRM.", Toast.LENGTH_LONG).show()
+                                    // Switch to history tab to view results
+                                    activeSubTab = "HISTORY"
+                                } else {
+                                    Toast.makeText(context, "Please select an active Lead and Product first!", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = WarmMahogany),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(46.dp)
+                        ) {
+                            Text("Compute & Save Legal Cost Sheet ✅", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                    }
+
+                    item {
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+                }
             }
         } else {
-            LazyColumn(
+            // HISTORY TAB
+            Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(quotations) { q ->
-                    QuotationRecordCard(q = q, onDelete = { onDeleteQuote(q.id) })
+                // Search Historic Records
+                OutlinedTextField(
+                    value = historySearchQuery,
+                    onValueChange = { historySearchQuery = it },
+                    placeholder = { Text("Search by Client Name or Quote PIN (e.g., BK-Q1001)...", fontSize = 11.sp) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = WarmMahogany,
+                        unfocusedBorderColor = LightWarmCard
+                    )
+                )
+
+                val filteredQuotations = remember(quotations, historySearchQuery) {
+                    quotations.filter {
+                        it.leadName.contains(historySearchQuery, ignoreCase = true) ||
+                        it.productName.contains(historySearchQuery, ignoreCase = true) ||
+                        "BK-Q${it.id + 1000}".contains(historySearchQuery, ignoreCase = true)
+                    }
+                }
+
+                if (filteredQuotations.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (quotations.isEmpty()) "No quotes generated in database yet." else "No historic records matched search query.",
+                            fontSize = 12.sp,
+                            color = TextMuted
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        items(filteredQuotations) { q ->
+                            QuotationRecordCard(q = q, onDelete = { onDeleteQuote(q.id) })
+                        }
+                    }
                 }
             }
         }
@@ -1479,6 +2552,7 @@ fun QuotationRecordCard(q: Quotation, onDelete: () -> Unit) {
 // ---------------- TAB 5: PRODUCT CATALOG ----------------
 @Composable
 fun ProductCatalogTab(
+    viewModel: SalesViewModel,
     products: List<Product>,
     onAddProduct: (Product) -> Unit,
     onDeleteProduct: (Int) -> Unit
@@ -1490,25 +2564,130 @@ fun ProductCatalogTab(
     var prodWarranty by remember { mutableStateOf("5 Years") }
     var prodDescription by remember { mutableStateOf("") }
 
+    val isSyncing by viewModel.isSyncingProducts.collectAsState()
+    val syncError by viewModel.syncErrorMsg.collectAsState()
+
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = "Premium Furniture Showroom Design Catalog",
-                fontSize = 15.sp,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
-                color = GoldAccent
+                color = GoldAccent,
+                modifier = Modifier.weight(1f)
             )
             Button(
                 onClick = { showForm = !showForm },
                 colors = ButtonDefaults.buttonColors(containerColor = if (showForm) Color.Gray else WarmMahogany),
-                modifier = Modifier.height(28.dp),
+                modifier = Modifier.height(30.dp).testTag("add_product_toggle_button"),
                 contentPadding = PaddingValues(horizontal = 10.dp)
             ) {
                 Text(if (showForm) "Close" else "+ Add", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+
+        // Live PostgreSQL Sync Status Management Ribbon
+        Card(
+            colors = CardDefaults.cardColors(containerColor = LightWarmCard.copy(alpha = 0.85f)),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+                .border(1.dp, GoldAccent.copy(alpha = 0.2f), RoundedCornerShape(8.dp)),
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            Column(modifier = Modifier.padding(10.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "External Database Synchronization Gateway",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = DarkWalnut
+                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.padding(top = 2.dp)
+                        ) {
+                            // Status indicator ball
+                            val hasSyncData = products.any { it.id > 1000 }
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .background(
+                                        color = if (syncError == null && hasSyncData) AccentSuccess else Color.Gray,
+                                        shape = RoundedCornerShape(50)
+                                    )
+                            )
+                            Text(
+                                text = if (syncError == null && hasSyncData) "ONLINE POSTGRESQL LINK ACTIVE" else "OFFLINE SHOWROOM CACHE",
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (syncError == null && hasSyncData) AccentSuccess else TextMuted
+                            )
+                        }
+                    }
+
+                    // Pulse sync button
+                    Button(
+                        onClick = { viewModel.syncProducts() },
+                        enabled = !isSyncing,
+                        colors = ButtonDefaults.buttonColors(containerColor = GoldAccent),
+                        modifier = Modifier.height(30.dp).testTag("sync_postgres_button"),
+                        contentPadding = PaddingValues(horizontal = 8.dp)
+                    ) {
+                        if (isSyncing) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                modifier = Modifier.size(12.dp),
+                                strokeWidth = 1.5.dp
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Syncing...", fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Sync",
+                                modifier = Modifier.size(12.dp),
+                                tint = Color.White
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Sync Live", fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+
+                if (syncError != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Graceful Handshake Fallback: " + syncError,
+                        fontSize = 9.sp,
+                        color = Color.Red.copy(alpha = 0.8f),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                } else if (products.any { it.id > 1000 }) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Successfully synchronized multi-tenant catalog. Loaded live inventory & pricing directly from local PostgreSQL cluster.",
+                        fontSize = 9.sp,
+                        color = DarkWalnut.copy(alpha = 0.75f)
+                    )
+                } else {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Using local hardware storehouse. Tap button to fetch real-time pricing and stock states in parallel from local host PostgreSQL runtime.",
+                        fontSize = 9.sp,
+                        color = TextMuted
+                    )
+                }
             }
         }
 
@@ -1531,19 +2710,18 @@ fun ProductCatalogTab(
                             value = prodName,
                             onValueChange = { prodName = it },
                             label = { Text("Item Name", fontSize = 9.sp) },
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).testTag("product_name_input"),
                             colors = TextFieldDefaults.colors(focusedIndicatorColor = WarmMahogany)
                         )
                         TextField(
                             value = prodPrice,
                             onValueChange = { prodPrice = it },
                             label = { Text("Price (ETB)", fontSize = 9.sp) },
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).testTag("product_price_input"),
                             colors = TextFieldDefaults.colors(focusedIndicatorColor = WarmMahogany)
                         )
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        // Materials option list (Wanza, Mahogany, Grar)
                         TextField(
                             value = prodMaterial,
                             onValueChange = { prodMaterial = it },
@@ -1589,7 +2767,7 @@ fun ProductCatalogTab(
                             }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = WarmMahogany),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("product_submit_button")
                     ) {
                         Text("Add to catalog", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
@@ -1600,12 +2778,14 @@ fun ProductCatalogTab(
         Spacer(modifier = Modifier.height(4.dp))
 
         // Grid/List of current catalogue showing generated AI hero image
-        LazyColumn(
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(minSize = 280.dp),
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Include our generated hero as the catalog backdrop banner
-            item {
+            // Include our generated hero as the catalog backdrop banner across all lanes
+            item(span = { GridItemSpan(maxLineSpan) }) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1735,3 +2915,638 @@ fun ProductShowcaseCard(product: Product, onDelete: () -> Unit) {
         }
     }
 }
+
+// ---------------- DASHBOARD TAB CONTENT ----------------
+@Composable
+fun DashboardTab(
+    viewModel: SalesViewModel,
+    leads: List<Lead>,
+    quotations: List<Quotation>,
+    onTabChange: (String) -> Unit
+) {
+    val totalLeads = leads.size
+    val activeCustomers = leads.count { it.status == "Won" || it.status == "Contacted" }
+    val pendingQuotes = quotations.size
+    val salesRevenue = quotations.sumOf { it.total }
+
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxSize()
+            .testTag("dashboard_root")
+    ) {
+        val availableWidth = maxWidth
+        val columns = if (availableWidth > 640.dp) 4 else if (availableWidth > 320.dp) 2 else 1
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(bottom = 24.dp)
+        ) {
+            item {
+                DashboardHeaderCard(onTabChange = onTabChange)
+            }
+
+            item {
+                Text(
+                    text = "EXECUTIVE METRICS",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = GoldAccent,
+                    letterSpacing = 1.5.sp,
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                )
+            }
+
+            when (columns) {
+                4 -> {
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            DashboardSummaryCard(
+                                title = "Total Leads",
+                                value = totalLeads.toString(),
+                                subtext = "Registered in CRM",
+                                icon = Icons.Default.Person,
+                                accentColor = AccentSuccess,
+                                modifier = Modifier.weight(1f),
+                                onClick = { onTabChange("CRM_LEADS") }
+                            )
+                            DashboardSummaryCard(
+                                title = "Active Customers",
+                                value = activeCustomers.toString(),
+                                subtext = "Engaged & Closed",
+                                icon = Icons.Default.CheckCircle,
+                                accentColor = Color(0xFF00E5FF),
+                                modifier = Modifier.weight(1f),
+                                onClick = { onTabChange("CRM_LEADS") }
+                            )
+                            DashboardSummaryCard(
+                                title = "Pending Quotes",
+                                value = pendingQuotes.toString(),
+                                subtext = "Awaiting final sign",
+                                icon = Icons.Default.ShoppingCart,
+                                accentColor = AccentWarning,
+                                modifier = Modifier.weight(1f),
+                                onClick = { onTabChange("QUOTE_ENGINE") }
+                            )
+                            DashboardSummaryCard(
+                                title = "Sales Revenue",
+                                value = "%,.0f".format(salesRevenue) + " ETB",
+                                subtext = "Real-time contracts",
+                                icon = Icons.Default.Star,
+                                accentColor = GoldAccent,
+                                modifier = Modifier.weight(1f),
+                                onClick = { onTabChange("QUOTE_ENGINE") }
+                            )
+                        }
+                    }
+                }
+                2 -> {
+                    item {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                DashboardSummaryCard(
+                                    title = "Total Leads",
+                                    value = totalLeads.toString(),
+                                    subtext = "Registered in CRM",
+                                    icon = Icons.Default.Person,
+                                    accentColor = AccentSuccess,
+                                    modifier = Modifier.weight(1f),
+                                    onClick = { onTabChange("CRM_LEADS") }
+                                )
+                                DashboardSummaryCard(
+                                    title = "Active Customers",
+                                    value = activeCustomers.toString(),
+                                    subtext = "Engaged & Closed",
+                                    icon = Icons.Default.CheckCircle,
+                                    accentColor = Color(0xFF00E5FF),
+                                    modifier = Modifier.weight(1f),
+                                    onClick = { onTabChange("CRM_LEADS") }
+                                )
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                DashboardSummaryCard(
+                                    title = "Pending Quotes",
+                                    value = pendingQuotes.toString(),
+                                    subtext = "Awaiting final sign",
+                                    icon = Icons.Default.ShoppingCart,
+                                    accentColor = AccentWarning,
+                                    modifier = Modifier.weight(1f),
+                                    onClick = { onTabChange("QUOTE_ENGINE") }
+                                )
+                                DashboardSummaryCard(
+                                    title = "Sales Revenue",
+                                    value = "%,.0f".format(salesRevenue) + " ETB",
+                                    subtext = "Real-time contracts",
+                                    icon = Icons.Default.Star,
+                                    accentColor = GoldAccent,
+                                    modifier = Modifier.weight(1f),
+                                    onClick = { onTabChange("QUOTE_ENGINE") }
+                                )
+                            }
+                        }
+                    }
+                }
+                else -> {
+                    item {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            DashboardSummaryCard(
+                                title = "Total Leads",
+                                value = totalLeads.toString(),
+                                subtext = "Registered in CRM",
+                                icon = Icons.Default.Person,
+                                accentColor = AccentSuccess,
+                                modifier = Modifier.fillMaxWidth(),
+                                onClick = { onTabChange("CRM_LEADS") }
+                            )
+                            DashboardSummaryCard(
+                                title = "Active Customers",
+                                value = activeCustomers.toString(),
+                                subtext = "Engaged & Closed",
+                                icon = Icons.Default.CheckCircle,
+                                accentColor = Color(0xFF00E5FF),
+                                modifier = Modifier.fillMaxWidth(),
+                                onClick = { onTabChange("CRM_LEADS") }
+                            )
+                            DashboardSummaryCard(
+                                title = "Pending Quotes",
+                                value = pendingQuotes.toString(),
+                                subtext = "Awaiting final sign",
+                                icon = Icons.Default.ShoppingCart,
+                                accentColor = AccentWarning,
+                                modifier = Modifier.fillMaxWidth(),
+                                onClick = { onTabChange("QUOTE_ENGINE") }
+                            )
+                            DashboardSummaryCard(
+                                title = "Sales Revenue",
+                                value = "%,.0f".format(salesRevenue) + " ETB",
+                                subtext = "Real-time contracts",
+                                icon = Icons.Default.Star,
+                                accentColor = GoldAccent,
+                                modifier = Modifier.fillMaxWidth(),
+                                onClick = { onTabChange("QUOTE_ENGINE") }
+                            )
+                        }
+                    }
+                }
+            }
+
+            item {
+                Text(
+                    text = "CRM QUICK CHANNELS",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = GoldAccent,
+                    letterSpacing = 1.5.sp,
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                )
+            }
+
+            item {
+                QuickActionsPanel(onTabChange = onTabChange)
+            }
+
+            item {
+                Text(
+                    text = "SIMULATOR LOAD CHANNELS",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = GoldAccent,
+                    letterSpacing = 1.5.sp,
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                )
+            }
+
+            item {
+                TrafficDistributionPanel(leads = leads)
+            }
+
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "RECENT INTAKE STREAM",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = GoldAccent,
+                        letterSpacing = 1.5.sp,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                    )
+                    Text(
+                        text = "View All",
+                        fontSize = 11.sp,
+                        color = Color(0xFF00E5FF),
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .clickable { onTabChange("CRM_LEADS") }
+                            .padding(end = 4.dp)
+                    )
+                }
+            }
+
+            if (leads.isEmpty()) {
+                item {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E0A35).copy(alpha = 0.6f)),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(1.dp, Color(0xFF2E1C4E), RoundedCornerShape(12.dp))
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = null,
+                                tint = TextMuted,
+                                modifier = Modifier.size(36.dp)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "No active CRM leads configured in your hub.",
+                                color = TextMuted,
+                                fontSize = 13.sp,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                }
+            } else {
+                items(leads.take(3)) { lead ->
+                    DashboardLeadItemCard(lead = lead, onTabChange = onTabChange)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DashboardHeaderCard(onTabChange: (String) -> Unit) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E0A35).copy(alpha = 0.7f)),
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, Color(0xFF3B1E6A), RoundedCornerShape(16.dp))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.img_bekansi_logo),
+                contentDescription = "Center logo",
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .border(2.dp, GoldAccent, RoundedCornerShape(12.dp)),
+                contentScale = ContentScale.Crop
+            )
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Welcome to Bekansi CRM",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextLight
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Smarter Ethiopian Multilingual Sales CRM. Standardised custom furniture quoting & omnichannel simulated chatbot triggers.",
+                    fontSize = 11.sp,
+                    color = TextMuted,
+                    lineHeight = 15.sp
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = { onTabChange("OMNICHANNEL_CHAT") },
+                    colors = ButtonDefaults.buttonColors(containerColor = WarmMahogany),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Text(text = "Launch Simulator", fontSize = 11.sp, color = TextLight, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DashboardSummaryCard(
+    title: String,
+    value: String,
+    subtext: String,
+    icon: ImageVector,
+    accentColor: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E0638).copy(alpha = 0.85f)),
+        shape = RoundedCornerShape(12.dp),
+        modifier = modifier
+            .border(1.dp, Color(0xFF330960), RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = title,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = TextMuted
+                )
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = accentColor,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = value,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Black,
+                color = TextLight,
+                maxLines = 1
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = subtext,
+                fontSize = 9.sp,
+                color = accentColor,
+                fontWeight = FontWeight.Medium
+            )
+        }
+    }
+}
+
+@Composable
+fun QuickActionsPanel(onTabChange: (String) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        QuickActionButton(
+            label = "Engage Clients",
+            icon = Icons.Default.Call,
+            color = Color(0xFF00E5FF),
+            modifier = Modifier.weight(1f),
+            onClick = { onTabChange("OMNICHANNEL_CHAT") }
+        )
+        QuickActionButton(
+            label = "Add Lead",
+            icon = Icons.Default.Person,
+            color = AccentSuccess,
+            modifier = Modifier.weight(1f),
+            onClick = { onTabChange("CRM_LEADS") }
+        )
+        QuickActionButton(
+            label = "New Quote",
+            icon = Icons.Default.ShoppingCart,
+            color = AccentWarning,
+            modifier = Modifier.weight(1f),
+            onClick = { onTabChange("QUOTE_ENGINE") }
+        )
+        QuickActionButton(
+            label = "Languages",
+            icon = Icons.Default.Settings,
+            color = Color(0xFFA071FF),
+            modifier = Modifier.weight(1f),
+            onClick = { onTabChange("ADMIN_LANG") }
+        )
+    }
+}
+
+@Composable
+fun QuickActionButton(
+    label: String,
+    icon: ImageVector,
+    color: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E0A35).copy(alpha = 0.5f)),
+        shape = RoundedCornerShape(8.dp),
+        modifier = modifier
+            .border(1.dp, Color(0xFF2C1352), RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 10.dp, horizontal = 4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = color,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = label,
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextLight,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
+fun TrafficDistributionPanel(leads: List<Lead>) {
+    val totalCount = leads.size.coerceAtLeast(1)
+    val whatsappCount = leads.count { it.source == "WhatsApp" }
+    val telegramCount = leads.count { it.source == "Telegram" }
+    val facebookCount = leads.count { it.source == "Facebook" }
+    val livechatCount = leads.count { it.source == "LiveChat" }
+    
+    val sum = (whatsappCount + telegramCount + facebookCount + livechatCount).toDouble().coerceAtLeast(1.0)
+    
+    val whatsappPct = whatsappCount / sum
+    val telegramPct = telegramCount / sum
+    val facebookPct = facebookCount / sum
+    val livechatPct = livechatCount / sum
+
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1B0735).copy(alpha = 0.8f)),
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, Color(0xFF2F1454), RoundedCornerShape(12.dp))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            TrafficDistributionRow(channel = "WhatsApp", pct = whatsappPct, color = Color(0xFF25D366), count = whatsappCount)
+            TrafficDistributionRow(channel = "Telegram", pct = telegramPct, color = Color(0xFF0088CC), count = telegramCount)
+            TrafficDistributionRow(channel = "Facebook Messenger", pct = facebookPct, color = Color(0xFF1877F2), count = facebookCount)
+            TrafficDistributionRow(channel = "LiveChat Hub", pct = livechatPct, color = GoldAccent, count = livechatCount)
+        }
+    }
+}
+
+@Composable
+fun TrafficDistributionRow(channel: String, pct: Double, color: Color, count: Int) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(text = channel, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextLight)
+            Text(
+                text = "$count leads (${"%.0f".format(pct * 100)}%)",
+                fontSize = 10.sp,
+                color = TextMuted,
+                fontWeight = FontWeight.Medium
+            )
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(6.dp)
+                .clip(RoundedCornerShape(3.dp))
+                .background(Color(0xFF2D164E))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(fraction = pct.toFloat())
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(color)
+            )
+        }
+    }
+}
+
+@Composable
+fun DashboardLeadItemCard(lead: Lead, onTabChange: (String) -> Unit) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF190632).copy(alpha = 0.8f)),
+        shape = RoundedCornerShape(10.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, Color(0xFF2D1152), RoundedCornerShape(10.dp))
+            .clickable { onTabChange("CRM_LEADS") }
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(text = lead.name, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextLight)
+                    
+                    Surface(
+                        color = when(lead.source) {
+                            "WhatsApp" -> Color(0xFF1F5C34)
+                            "Telegram" -> Color(0xFF114361)
+                            "Facebook" -> Color(0xFF12346B)
+                            else -> Color(0xFF5A4413)
+                        },
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(
+                            text = lead.source,
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextLight,
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = lead.requirements.ifBlank { "No special design requirements noted." },
+                    fontSize = 11.sp,
+                    color = TextMuted,
+                    maxLines = 1
+                )
+            }
+            
+            Surface(
+                color = when (lead.status) {
+                    "Won" -> AccentSuccess.copy(alpha = 0.2f)
+                    "New" -> Color(0xFF00E5FF).copy(alpha = 0.2f)
+                    "Contacted" -> AccentWarning.copy(alpha = 0.2f)
+                    else -> Color.Gray.copy(alpha = 0.2f)
+                },
+                shape = RoundedCornerShape(6.dp),
+                modifier = Modifier.border(
+                    1.dp,
+                    when (lead.status) {
+                        "Won" -> AccentSuccess
+                        "New" -> Color(0xFF00E5FF)
+                        "Contacted" -> AccentWarning
+                        else -> Color.Gray
+                    },
+                    RoundedCornerShape(6.dp)
+                )
+            ) {
+                Text(
+                    text = lead.status,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = when (lead.status) {
+                        "Won" -> AccentSuccess
+                        "New" -> Color(0xFF00E5FF)
+                        "Contacted" -> AccentWarning
+                        else -> Color.White
+                    },
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+            }
+        }
+    }
+}
+

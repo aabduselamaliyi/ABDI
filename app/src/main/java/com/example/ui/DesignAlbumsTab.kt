@@ -109,7 +109,7 @@ fun DesignAlbumsTab(viewModel: SalesViewModel) {
                             selectedAlbumForDetail = album
                         },
                         onToggleFavorite = { album ->
-                            viewModel.toggleFavorite("0911000000", album.id) // Default simulator phone
+                            viewModel.toggleFavorite("0988828861", album.id) // Default simulator phone
                             Toast.makeText(context, "Updated wishlist!", Toast.LENGTH_SHORT).show()
                         }
                     )
@@ -134,7 +134,7 @@ fun DesignAlbumsTab(viewModel: SalesViewModel) {
                             selectedAlbumForDetail = album
                         },
                         onRemoveFavorite = { albumId ->
-                            viewModel.toggleFavorite("0911000000", albumId)
+                            viewModel.toggleFavorite("0988828861", albumId)
                             Toast.makeText(context, "Removed from wishlist", Toast.LENGTH_SHORT).show()
                         }
                     )
@@ -164,7 +164,7 @@ fun DesignAlbumsTab(viewModel: SalesViewModel) {
             selectedLanguage = selectedLanguage,
             onDismiss = { selectedAlbumForDetail = null },
             onToggleFavorite = {
-                viewModel.toggleFavorite("0911000000", album.id)
+                viewModel.toggleFavorite("0988828861", album.id)
             },
             onSubmitQuotation = { phone, name, location, budget, req ->
                 viewModel.requestQuotationForAlbum(phone, name, location, album.id, budget, req)

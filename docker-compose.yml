@@ -1,0 +1,63 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bekansi_api_service
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=postgresql://bekansi_admin:BekansiSecure2026@pgsql_db:5432/bekansi_crm_db
+      - JWT_SECRET=bekansi_jwt_jwt_secret_token_9f816acf
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - FB_PAGE_TOKEN=${FB_PAGE_TOKEN}
+      - PAGE_ID=${PAGE_ID}
+      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+      - TELEGRAM_CHANNEL=${TELEGRAM_CHANNEL}
+      - IG_ID=${IG_ID}
+    depends_on:
+      pgsql_db:
+        condition: service_healthy
+
+  pgsql_db:
+    image: postgres:15-alpine
+    container_name: bekansi_db_engine
+    restart: always
+    environment:
+      - POSTGRES_USER=bekansi_admin
+      - POSTGRES_PASSWORD=BekansiSecure2026
+      - POSTGRES_DB=bekansi_crm_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgsql_data_volume:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bekansi_admin -d bekansi_crm_db"]
+      interval: 8s
+      timeout: 5s
+      retries: 5
+
+  nginx_gateway:
+    image: nginx:alpine
+    container_name: bekansi_nginx_gateway
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - certs_volume:/etc/letsencrypt
+    depends_on:
+      - app
+
+volumes:
+  pgsql_data_volume:
+    driver: local
+  certs_volume:
+    driver: local
